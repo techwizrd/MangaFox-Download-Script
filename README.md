@@ -15,20 +15,20 @@ Tested on Ubuntu Linux 9.04, 9.10, 10.04, and 10.10. It should work on any Linux
 
 usage
 -----
-### to download an entire series
+to download an entire series
     ~ $ python mfdl.py [MANGA_NAME]
-### to download a specific chapter (downloads wrong chapter if a manga has a strange numbering scheme like starting with 0)
+to download a specific chapter (downloads wrong chapter if a manga has a strange numbering scheme like starting with 0)
     ~ $ python mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]
-### to download a range of manga chapter (same caveats as above)
+to download a range of manga chapter (same caveats as above)
     ~ $ python mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]
 
 examples
 --------
-### download all of Yureka
+download all of Yureka
     ~ $ python mfdl.py Yureka
-### download Yureka chapter 165
+download Yureka chapter 165
     ~ $ python mfdl.py Yureka 165
-### download Yureka chapters 160-170
+download Yureka chapters 160-170
     ~ $ python mfdl.py Yureka 160 170
 
 notes
