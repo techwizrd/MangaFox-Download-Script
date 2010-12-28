@@ -2,14 +2,18 @@
 
 '''Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>'''
 
+#from IPython.Shell import IPShellEmbed #for debug purposes
+#ipshell = IPShellEmbed()
+
 import sys
 import os
 import urllib
+import glob
+import shutil
+from zipfile import ZipFile
 from BeautifulSoup import BeautifulSoup
-#from IPython.Shell import IPShellEmbed #for debug purposes
 
 URL_BASE = "http://mangafox.com/"
-#ipshell = IPShellEmbed()
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
@@ -76,6 +80,18 @@ def download_urls(image_urls, manga_name, chapter_number):
         num = num + 1
 
 
+def makecbz(dirname):
+    """Create CBZ files for all files in a directory."""
+    dirname = os.path.abspath(dirname)
+    zipname = dirname + '.cbz'
+    images = glob.glob(dirname + "/*.jpg")
+    myzip = ZipFile(zipname, 'w')
+    for filename in images:
+       print("writing {0} to {1}".format(filename, zipname))
+       myzip.write(filename)
+    myzip.close()
+
+
 def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print "Getting chapter urls"
@@ -86,7 +102,7 @@ def download_manga_range(manga_name, range_start, range_end):
         print("===============================================")
         print("Chapter " + chapter_number)
         print("===============================================")
-        #image_urls = get_chapter_image_urls(url_fragment)
+        image_urls = get_chapter_image_urls(url_fragment)
     os.remove("page.html")
 
 
@@ -102,15 +118,20 @@ def download_manga(manga_name, chapter_number=None):
         print("===============================================")
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
+        download_dir = "./{0}/{1}".format(manga_name, chapter_number)
+        makecbz(download_dir)
+        shutil.rmtree(download_dir)
     else:
         for url_fragment in chapter_urls:
             chapter_number = get_chapter_number(url_fragment)
-            print chapter_number
             print("===============================================")
             print("Chapter " + chapter_number)
             print("===============================================")
             image_urls = get_chapter_image_urls(url_fragment)
             download_urls(image_urls, manga_name, chapter_number)
+            download_dir = "./{0}/{1}".format(manga_name, chapter_number)
+            makecbz(download_dir)
+            shutil.rmtree(download_dir)
     os.remove("page.html")
 
 if __name__ == '__main__':
