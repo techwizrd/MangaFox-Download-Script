@@ -15,6 +15,7 @@ from BeautifulSoup import BeautifulSoup
 
 URL_BASE = "http://mangafox.com/"
 
+
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
     urllib.urlretrieve(url, "page.html")
@@ -49,12 +50,15 @@ def get_page_numbers(soup):
 def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
     print "Getting chapter urls"
+    url_fragment = os.path.dirname(url_fragment) + "/"
     chapter_url = URL_BASE + url_fragment
     chapter = get_page_soup(chapter_url)
     pages = get_page_numbers(chapter)
     image_urls = []
     print "Getting image urls..."
     for page in pages:
+        print "url_fragment: {0}".format(url_fragment)
+        print "page: {0}".format(page)
         print "Getting image url from {0}{1}.html".format(url_fragment, page)
         page_soup = get_page_soup(chapter_url + page + ".html")
         images = page_soup.findAll('img', {'id': 'image'})
@@ -87,8 +91,8 @@ def makecbz(dirname):
     images = glob.glob(dirname + "/*.jpg")
     myzip = ZipFile(zipname, 'w')
     for filename in images:
-       print("writing {0} to {1}".format(filename, zipname))
-       myzip.write(filename)
+        print("writing {0} to {1}".format(filename, zipname))
+        myzip.write(filename)
     myzip.close()
 
 
@@ -103,6 +107,10 @@ def download_manga_range(manga_name, range_start, range_end):
         print("Chapter " + chapter_number)
         print("===============================================")
         image_urls = get_chapter_image_urls(url_fragment)
+        download_urls(image_urls, manga_name, chapter_number)
+        download_dir = "./{0}/{1}".format(manga_name, chapter_number)
+        makecbz(download_dir)
+        shutil.rmtree(download_dir)
     os.remove("page.html")
 
 
