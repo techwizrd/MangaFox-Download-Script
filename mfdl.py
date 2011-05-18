@@ -31,7 +31,7 @@ def get_chapter_urls(manga_name):
     url = "{0}manga/{1}?no_warning=1".format(URL_BASE, manga_name.lower())
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "chico"})
+    links = soup.findAll('a', {"class": "ch"})
     for link in links:
         chapters.append(link['href'])
     return list(set(chapters)) # ugly yo-yo code to remove duplicates
