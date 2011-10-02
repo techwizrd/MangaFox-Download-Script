@@ -32,7 +32,7 @@ def get_chapter_urls(manga_name):
     print "Url: " + url
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "chico"})
+    links = soup.findAll('a', {"class": "ch"})
     for link in links:
         chapters.append(link['href'])
     if(len(links) == 0):
