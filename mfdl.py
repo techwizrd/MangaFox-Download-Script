@@ -29,11 +29,14 @@ def get_page_soup(url):
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
     url = "{0}manga/{1}?no_warning=1".format(URL_BASE, manga_name.lower())
+    print "Url: " + url
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "chico"})
+    links = soup.findAll('a', {"class": "ch"})
     for link in links:
         chapters.append(link['href'])
+    if(len(links) == 0):
+        print "Warning: Manga either unable to be found, or no chapters - please check the url above";
     return list(set(chapters)) # ugly yo-yo code to remove duplicates
 
 
