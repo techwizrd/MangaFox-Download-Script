@@ -17,7 +17,7 @@ from itertools import izip, count
 
 from BeautifulSoup import BeautifulSoup
 
-URL_BASE = "http://mangafox.com/"
+URL_BASE = 'http://mangafox.com/'
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
@@ -30,7 +30,7 @@ def get_chapter_urls(manga_name):
     print 'URL: ', url
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "ch"})
+    links = soup.findAll('a', {'class': 'ch'})
     for link in links:
         chapters.append(link['href'])
     if not links:
@@ -46,7 +46,7 @@ def get_page_numbers(soup):
 
 def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
-    print "Getting chapter urls"
+    print 'Getting chapter urls'
     url_fragment = os.path.dirname(url_fragment) + '/'
     chapter_url = URL_BASE + url_fragment
     chapter = get_page_soup(chapter_url)
@@ -64,7 +64,7 @@ def get_chapter_image_urls(url_fragment):
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
-    return ''.join(url_fragment.rsplit("/")[3:-1])
+    return ''.join(url_fragment.rsplit('/')[3:-1])
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
@@ -97,7 +97,7 @@ def download_manga_range(manga_name, range_start, range_end):
         print '=' * 48
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
-        download_dir = "./{0}/{1}".format(manga_name, chapter_number)
+        download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         make_cbz(download_dir)
         shutil.rmtree(download_dir)
 
