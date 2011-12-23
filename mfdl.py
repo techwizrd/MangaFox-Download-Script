@@ -28,11 +28,11 @@ def get_page_soup(url):
 
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
-    url = "{0}manga/{1}?no_warning=1".format(URL_BASE, manga_name.lower())
+    url = "{0}manga/{1}".format(URL_BASE, manga_name.lower())
     print "Url: " + url
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "ch"})
+    links = soup.findAll('a', {"class": "tips"})
     for link in links:
         chapters.append(link['href'])
     if(len(links) == 0):
@@ -42,7 +42,7 @@ def get_chapter_urls(manga_name):
 
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
-    raw = soup.findAll('select', {'class': 'middle'})[0]
+    raw = soup.findAll('select', {'class': 'm'})[0]
     raw_options = raw.findAll('option')
     pages = []
     for html in raw_options:
@@ -50,28 +50,26 @@ def get_page_numbers(soup):
     return pages
 
 
-def get_chapter_image_urls(url_fragment):
+def get_chapter_image_urls(chapter_url):
     """Find all image urls of a chapter and return them"""
     print "Getting chapter urls"
-    url_fragment = os.path.dirname(url_fragment) + "/"
-    chapter_url = URL_BASE + url_fragment
     chapter = get_page_soup(chapter_url)
     pages = get_page_numbers(chapter)
     image_urls = []
     print "Getting image urls..."
     for page in pages:
-        print "url_fragment: {0}".format(url_fragment)
+        print "url_fragment: {0}".format(chapter_url)
         print "page: {0}".format(page)
-        print "Getting image url from {0}{1}.html".format(url_fragment, page)
+        print "Getting image url from {0}/{1}.html".format(chapter_url, page)
         page_soup = get_page_soup(chapter_url + page + ".html")
         images = page_soup.findAll('img', {'id': 'image'})
         image_urls.append(images[0]['src'])
     return image_urls
 
 
-def get_chapter_number(url_fragment):
+def get_chapter_number(chapter_url):
     """Parse the url fragment and return the chapter number."""
-    return ''.join(url_fragment.rsplit("/")[3:-1])
+    return ''.join(chapter_url.rsplit("/")[4:-1])
 
 
 def download_urls(image_urls, manga_name, chapter_number):
@@ -104,12 +102,12 @@ def download_manga_range(manga_name, range_start, range_end):
     print "Getting chapter urls"
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
-    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)+1]:
-        chapter_number = get_chapter_number(url_fragment)
+    for chapter_url in chapter_urls[int(range_start):int(range_end)+1]:
+        chapter_number = get_chapter_number(chapter_url)
         print("===============================================")
         print("Chapter " + chapter_number)
         print("===============================================")
-        image_urls = get_chapter_image_urls(url_fragment)
+        image_urls = get_chapter_image_urls(chapter_url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = "./{0}/{1}".format(manga_name, chapter_number)
         makecbz(download_dir)
@@ -122,23 +120,23 @@ def download_manga(manga_name, chapter_number=None):
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
     if chapter_number:
-        url_fragment = chapter_urls[int(chapter_number)-1]
-        chapter_number = get_chapter_number(url_fragment)
+        chapter_url = chapter_urls[int(chapter_number)]
+        chapter_number = get_chapter_number(chapter_url)
         print("===============================================")
         print("Chapter " + chapter_number)
         print("===============================================")
-        image_urls = get_chapter_image_urls(url_fragment)
+        image_urls = get_chapter_image_urls(chapter_url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = "./{0}/{1}".format(manga_name, chapter_number)
         makecbz(download_dir)
         shutil.rmtree(download_dir)
     else:
-        for url_fragment in chapter_urls:
-            chapter_number = get_chapter_number(url_fragment)
+        for chapter_url in chapter_urls:
+            chapter_number = get_chapter_number(chapter_url)
             print("===============================================")
             print("Chapter " + chapter_number)
             print("===============================================")
-            image_urls = get_chapter_image_urls(url_fragment)
+            image_urls = get_chapter_image_urls(chapter_url)
             download_urls(image_urls, manga_name, chapter_number)
             download_dir = "./{0}/{1}".format(manga_name, chapter_number)
             makecbz(download_dir)
