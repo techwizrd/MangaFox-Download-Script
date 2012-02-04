@@ -65,7 +65,7 @@ def get_chapter_image_urls(url_fragment):
         print "url_fragment: {0}".format(url_fragment)
         print "page: {0}".format(page)
         print "Getting image url from {0}{1}.html".format(url_fragment, page)
-        page_soup = get_page_soup(chapter_url + page + ".html")
+        page_soup = get_page_soup(url_fragment + page + ".html")
         images = page_soup.findAll('img', {'id': 'image'})
         image_urls.append(images[0]['src'])
     return image_urls
