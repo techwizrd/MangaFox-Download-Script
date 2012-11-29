@@ -105,7 +105,7 @@ def download_manga_range(manga_name, range_start, range_end):
     print "Getting chapter urls"
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
-    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)+1]:
+    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)]:
         chapter_number = get_chapter_number(url_fragment)
         print("===============================================")
         print("Chapter " + chapter_number)
