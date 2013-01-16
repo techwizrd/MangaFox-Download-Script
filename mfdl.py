@@ -32,7 +32,7 @@ def get_chapter_urls(manga_name):
     print "Url: " + url
     soup = get_page_soup(url)
     chapters = []
-    links = soup.findAll('a', {"class": "ch"})
+    links = soup.findAll('a', {"class": "tips"})
     for link in links:
         chapters.append(link['href'])
     if(len(links) == 0):
@@ -42,11 +42,12 @@ def get_chapter_urls(manga_name):
 
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
-    raw = soup.findAll('select', {'class': 'middle'})[0]
+    raw = soup.findAll('select', {'class': 'm'})[0]
     raw_options = raw.findAll('option')
     pages = []
     for html in raw_options:
-        pages.append(html['value'])
+        if(html['value'] != '0'):
+            pages.append(html['value'])
     return pages
 
 
@@ -54,7 +55,7 @@ def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
     print "Getting chapter urls"
     url_fragment = os.path.dirname(url_fragment) + "/"
-    chapter_url = URL_BASE + url_fragment
+    chapter_url = url_fragment
     chapter = get_page_soup(chapter_url)
     pages = get_page_numbers(chapter)
     image_urls = []
@@ -71,7 +72,7 @@ def get_chapter_image_urls(url_fragment):
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
-    return ''.join(url_fragment.rsplit("/")[3:-1])
+    return ''.join(url_fragment.rsplit("/")[5:-1])
 
 
 def download_urls(image_urls, manga_name, chapter_number):
@@ -104,7 +105,7 @@ def download_manga_range(manga_name, range_start, range_end):
     print "Getting chapter urls"
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
-    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)+1]:
+    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)]:
         chapter_number = get_chapter_number(url_fragment)
         print("===============================================")
         print("Chapter " + chapter_number)
