@@ -13,7 +13,7 @@ import shutil
 from zipfile import ZipFile
 from BeautifulSoup import BeautifulSoup
 
-URL_BASE = "http://mangafox.com/"
+URL_BASE = "http://mangafox.me/"
 
 
 def get_page_soup(url):
