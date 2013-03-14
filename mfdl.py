@@ -2,9 +2,6 @@
 
 '''Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>'''
 
-#from IPython.Shell import IPShellEmbed #for debug purposes
-#ipshell = IPShellEmbed()
-
 import sys
 import os
 import urllib
@@ -12,18 +9,15 @@ import glob
 import shutil
 from zipfile import ZipFile
 from BeautifulSoup import BeautifulSoup
+from contextlib import closing
 
 URL_BASE = "http://mangafox.me/"
 
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    urllib.urlretrieve(url, "page.html")
-    html = ""
-    with open("page.html") as html_file:
-        for line in html_file:
-            html += line
-    return BeautifulSoup(html)
+    with closing(urllib.urlopen(url)) as html_file:
+        return BeautifulSoup(html_file.read())
 
 
 def get_chapter_urls(manga_name):
@@ -145,7 +139,7 @@ def download_manga(manga_name, chapter_number=None):
             download_dir = "./{0}/{1}".format(manga_name, chapter_number)
             makecbz(download_dir)
             shutil.rmtree(download_dir)
-    os.remove("page.html")
+    #os.remove("page.html")
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
