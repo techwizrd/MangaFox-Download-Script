@@ -31,8 +31,9 @@ def get_chapter_urls(manga_name):
     for link in links:
         chapters.append(link['href'])
     if(len(links) == 0):
-        print "Warning: Manga either unable to be found, or no chapters - please check the url above";
-    return list(set(chapters)) # ugly yo-yo code to remove duplicates
+        print("Warning: Manga either unable to be found, or no chapters - ",
+              "please check the url above")
+    return list(set(chapters))  # ugly yo-yo code to remove duplicates
 
 
 def get_page_numbers(soup):
@@ -100,7 +101,7 @@ def download_manga_range(manga_name, range_start, range_end):
     print "Getting chapter urls"
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
-    for url_fragment in chapter_urls[int(range_start)-1:int(range_end)]:
+    for url_fragment in chapter_urls[int(range_start) - 1:int(range_end)]:
         chapter_number = get_chapter_number(url_fragment)
         print("===============================================")
         print("Chapter " + chapter_number)
@@ -118,7 +119,7 @@ def download_manga(manga_name, chapter_number=None):
     chapter_urls = get_chapter_urls(manga_name)
     chapter_urls.sort()
     if chapter_number:
-        url_fragment = chapter_urls[int(chapter_number)-1]
+        url_fragment = chapter_urls[int(chapter_number) - 1]
         chapter_number = get_chapter_number(url_fragment)
         print("===============================================")
         print("Chapter " + chapter_number)
