@@ -28,6 +28,7 @@ def get_page_soup(url):
 
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
+    manga_name = manga_name.replace(" ", "_")
     url = "{0}manga/{1}?no_warning=1".format(URL_BASE, manga_name.lower())
     print "Url: " + url
     soup = get_page_soup(url)
