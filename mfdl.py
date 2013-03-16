@@ -12,6 +12,7 @@ import shutil
 from zipfile import ZipFile
 from BeautifulSoup import BeautifulSoup
 from contextlib import closing
+from collections import OrderedDict
 
 URL_BASE = "http://mangafox.me/"
 
@@ -24,18 +25,18 @@ def get_page_soup(url):
 
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
-    manga_name = manga_name.replace(' ', '_')
-    url = '{0}manga/{1}?no_warning=1'.format(URL_BASE, manga_name.lower())
+    manga_url = manga_name.replace(' ', '_').lower()
+    url = '{0}manga/{1}?no_warning=1'.format(URL_BASE, manga_url)
     print('Url: ' + url)
     soup = get_page_soup(url)
-    chapters = []
+    chapters = OrderedDict()
     links = soup.findAll('a', {"class": "tips"})
     for link in links:
-        chapters.append(link['href'])
+        chapters[link.text.replace(manga_name + ' ', '')] = link['href']
     if(len(links) == 0):
         print('Warning: Manga either unable to be found, or no chapters - ',
               'please check the url above')
-    return list(set(chapters))  # ugly yo-yo code to remove duplicates
+    return chapters
 
 
 def get_page_numbers(soup):
@@ -101,7 +102,6 @@ def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
-    chapter_urls.sort()
     for url_fragment in chapter_urls[int(range_start) - 1:int(range_end)]:
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
@@ -117,9 +117,8 @@ def download_manga_range(manga_name, range_start, range_end):
 def download_manga(manga_name, chapter_number=None):
     """Download all chapters of a manga"""
     chapter_urls = get_chapter_urls(manga_name)
-    chapter_urls.sort()
     if chapter_number:
-        url_fragment = chapter_urls[int(chapter_number) - 1]
+        url_fragment = chapter_urls[chapter_number]
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
         print('Chapter ' + chapter_number)
@@ -130,7 +129,7 @@ def download_manga(manga_name, chapter_number=None):
         make_cbz(download_dir)
         shutil.rmtree(download_dir)
     else:
-        for url_fragment in chapter_urls:
+        for chapter_number, url_fragment in chapter_urls.iteritems():
             chapter_number = get_chapter_number(url_fragment)
             print('===============================================')
             print('Chapter ' + chapter_number)
