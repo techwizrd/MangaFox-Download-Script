@@ -67,7 +67,8 @@ def get_chapter_image_urls(url_fragment):
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
         images = page_soup.findAll('img', {'id': 'image'})
-        image_urls.append(images[0]['src'])
+        if images:
+            image_urls.append(images[0]['src'])
     return image_urls
 
 
@@ -78,7 +79,10 @@ def get_chapter_number(url_fragment):
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
-    os.makedirs('{0}/{1}/'.format(manga_name, chapter_number))
+    download_dir = '{0}/{1}/'.format(manga_name, chapter_number)
+    if os.path.exists(download_dir):
+        shutil.rmtree(download_dir)
+    os.makedirs(download_dir)
     for i, url in enumerate(image_urls):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
         print('Downloading {0} to {1}'.format(url, filename))
