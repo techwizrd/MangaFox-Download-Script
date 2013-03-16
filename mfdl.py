@@ -31,16 +31,18 @@ def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
     replace = lambda s, k: s.replace(k, '_')
     manga_url = reduce(replace, [' ', '-'], manga_name.lower())
-    url = '{0}manga/{1}?'.format(URL_BASE, manga_url)
+    url = '{0}manga/{1}'.format(URL_BASE, manga_url)
     print('Url: ' + url)
     soup = get_page_soup(url)
+    warning = soup.find('div', {'class': 'warning'})
+    if warning and "licensed" in warning.text:
+        sys.exit('Error: ' + warning.text)
     chapters = OrderedDict()
     links = soup.findAll('a', {"class": "tips"})
     for link in links:
         chapters[link.text.replace(manga_name + ' ', '')] = link['href']
     if(len(links) == 0):
-        print('Warning: Manga either unable to be found, or no chapters - ',
-              'please check the url above')
+        sys.exit('Error: Manga either does not exist or has no chapters')
     return chapters
 
 
