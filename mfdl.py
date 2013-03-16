@@ -10,7 +10,10 @@ import urllib
 import glob
 import shutil
 from zipfile import ZipFile
-from BeautifulSoup import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    from BeautifulSoup import BeautifulSoup
 from contextlib import closing
 from collections import OrderedDict
 from itertools import islice
