@@ -41,9 +41,8 @@ def get_chapter_urls(manga_name):
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
     raw = soup.findAll('select', {'class': 'm'})[0]
-    raw_options = raw.findAll('option')
     pages = []
-    for html in raw_options:
+    for html in raw.findAll('option'):
         if(html['value'] != '0'):
             pages.append(html['value'])
     return pages
@@ -75,22 +74,17 @@ def get_chapter_number(url_fragment):
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
-    num = 1
     os.makedirs('{0}/{1}/'.format(manga_name, chapter_number))
-    for url in image_urls:
-        filename = './{0}/{1}/{2:03}.jpg'.format(manga_name,
-                                                 chapter_number,
-                                                 num)
+    for i, url in enumerate(image_urls):
+        filename = "./{0}/{1}/{2:03}.jpg".format(manga_name, chapter_number, i)
         print('Downloading {0} to {1}'.format(url, filename))
         urllib.urlretrieve(url, filename)
-        num = num + 1
 
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
-    dirname = os.path.abspath(dirname)
     zipname = dirname + '.cbz'
-    images = glob.glob(dirname + '/*.jpg')
+    images = glob.glob(os.path.abspath(dirname) + '/*.jpg')
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
