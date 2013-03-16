@@ -3,44 +3,44 @@ Mangafox Download Script
 
 About
 -----
-Mangafox Download Script is a manga downloader similar to my old Onemanga Download Script (although onemanga.com shut down). It works by downloading each individual page and parsing it for the image url. Then it downloads all the images.
+Mangafox Download Script is a manga downloader similar to my old Onemanga Download Script (although onemanga.com shut down). It works by scraping the image URL from every page in a manga chapter. It then it downloads all the images.
 I created this because I prefer reading manga with the use of a viewer like Comix. I also prefer keeping manga on my hard drive in case I am not connected to the internet.
 
 Dependencies
 ------------
 
-  * Python 2.6 and up (not tested with Python 3)
-  * BeautifulSoup (pip install beautifulsoup)
+  * Python 2.7, 3.3
+  * BeautifulSoup (``pip install beautifulsoup`` OR ``pip install beautifulsoup4``)
 
-Tested on Ubuntu Linux 9.04, 9.10, 10.04, 10.10, and 11.04. It should work on any Linux, OS X, or Windows machine as long as they've got the dependencies.
+Tested on Ubuntu Linux 12.04 LTS and 12.10. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
 
 Usage
 -----
-To download an entire series
+To download an entire series:
 
     ~ $ python mfdl.py [MANGA_NAME]
 
-To download a specific chapter (downloads wrong chapter if a manga has a strange numbering scheme like starting with 0)
+To download a specific chapter:
 
     ~ $ python mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]
 
-To download a range of manga chapter (same caveats as above):
+To download a range of manga chapter:
 
     ~ $ python mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]
 
 Examples
 --------
-Download all of Yureka::
+Download all of The World God Only Knows:
 
-    ~ $ python mfdl.py Yureka
+    ~ $ python mfdl.py "The World God Only Knows"
 
-Download Yureka chapter 165:
+Download The World God Only Knows chapter 222.5:
 
-    ~ $ python mfdl.py Yureka 165
+    ~ $ python mfdl.py "The World God Only Knows" 222.5
 
-Download Yureka chapters 160-170:
+Download The World God Only Knows chapters 190-205:
 
-    ~ $ python mfdl.py Yureka 160 170
+    ~ $ python mfdl.py "The World God Only Knows" 190 205
 
 Notes
 -----
