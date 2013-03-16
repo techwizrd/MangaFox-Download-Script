@@ -13,6 +13,7 @@ from zipfile import ZipFile
 from BeautifulSoup import BeautifulSoup
 from contextlib import closing
 from collections import OrderedDict
+from itertools import islice
 
 URL_BASE = "http://mangafox.me/"
 
@@ -102,7 +103,11 @@ def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
-    for url_fragment in chapter_urls[int(range_start) - 1:int(range_end)]:
+    iend = chapter_urls.keys().index(range_start) + 1
+    istart = chapter_urls.keys().index(range_end)
+    print "istart", istart
+    print "iend", iend
+    for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
         print('Chapter ' + chapter_number)
