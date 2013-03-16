@@ -35,10 +35,10 @@ def get_chapter_urls(manga_name):
     print('Url: ' + url)
     soup = get_page_soup(url)
     warning = soup.find('div', {'class': 'warning'})
-    if warning and "licensed" in warning.text:
+    if warning and 'licensed' in warning.text:
         sys.exit('Error: ' + warning.text)
     chapters = OrderedDict()
-    links = soup.findAll('a', {"class": "tips"})
+    links = soup.findAll('a', {'class': 'tips'})
     for link in links:
         chapters[link.text.replace(manga_name + ' ', '')] = link['href']
     if(len(links) == 0):
@@ -49,11 +49,7 @@ def get_chapter_urls(manga_name):
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
     raw = soup.findAll('select', {'class': 'm'})[0]
-    pages = []
-    for html in raw.findAll('option'):
-        if(html['value'] != '0'):
-            pages.append(html['value'])
-    return pages
+    return (html['value'] for html in raw.findAll('option'))
 
 
 def get_chapter_image_urls(url_fragment):
@@ -84,7 +80,7 @@ def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
     os.makedirs('{0}/{1}/'.format(manga_name, chapter_number))
     for i, url in enumerate(image_urls):
-        filename = "./{0}/{1}/{2:03}.jpg".format(manga_name, chapter_number, i)
+        filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
         print('Downloading {0} to {1}'.format(url, filename))
         urllib.urlretrieve(url, filename)
 
@@ -105,8 +101,6 @@ def download_manga_range(manga_name, range_start, range_end):
     chapter_urls = get_chapter_urls(manga_name)
     iend = chapter_urls.keys().index(range_start) + 1
     istart = chapter_urls.keys().index(range_end)
-    print "istart", istart
-    print "iend", iend
     for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
