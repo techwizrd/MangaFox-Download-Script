@@ -39,10 +39,10 @@ def get_chapter_urls(manga_name):
         sys.exit('Error: ' + warning.text)
     chapters = OrderedDict()
     links = soup.findAll('a', {'class': 'tips'})
-    for link in links:
-        chapters[link.text.replace(manga_name + ' ', '')] = link['href']
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
+    for link in links:
+        chapters[link.text.replace(manga_name + ' ', '')] = link['href']
     return chapters
 
 
