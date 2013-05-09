@@ -35,6 +35,18 @@ def get_chapter_urls(manga_name):
     url = '{0}manga/{1}'.format(URL_BASE, manga_url)
     print('Url: ' + url)
     soup = get_page_soup(url)
+    manga_does_not_exist = soup.find('form', {'id': 'searchform'})
+    if manga_does_not_exist:
+        search_sort_options = 'sort=views&order=za'
+        url = '{0}/search.php?name={1}&{2}'.format(URL_BASE,
+                                                   manga_url,
+                                                   search_sort_options)
+        soup = get_page_soup(url)
+        results = soup.findAll('a', {'class': 'series_preview'})
+        error_text = 'Error: Manga \'{0}\' does not exist'.format(manga_name)
+        error_text += '\nDid you meant one of the following?\n  * '
+        error_text += '\n  * '.join([manga.text for manga in results][:10])
+        sys.exit(error_text)
     warning = soup.find('div', {'class': 'warning'})
     if warning and 'licensed' in warning.text:
         sys.exit('Error: ' + warning.text)
