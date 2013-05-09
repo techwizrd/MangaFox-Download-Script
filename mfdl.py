@@ -124,7 +124,11 @@ def download_manga(manga_name, chapter_number=None):
     """Download all chapters of a manga"""
     chapter_urls = get_chapter_urls(manga_name)
     if chapter_number:
-        url_fragment = chapter_urls[chapter_number]
+        if chapter_number in chapter_urls:
+            url_fragment = chapter_urls[chapter_number]
+        else:
+            error_text = 'Error: Chapter {0} does not exist'
+            sys.exit(error_text.format(chapter_number))
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
         print('Chapter ' + chapter_number)
