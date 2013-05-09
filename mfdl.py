@@ -9,6 +9,7 @@ import os
 import urllib
 import glob
 import shutil
+import re
 from zipfile import ZipFile
 try:
     from bs4 import BeautifulSoup
@@ -41,8 +42,10 @@ def get_chapter_urls(manga_name):
     links = soup.findAll('a', {'class': 'tips'})
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
+    replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
+                                    re.IGNORECASE)
     for link in links:
-        chapters[link.text.replace(manga_name + ' ', '')] = link['href']
+        chapters[replace_manga_name.sub('', link.text).strip()] = link['href']
     return chapters
 
 
