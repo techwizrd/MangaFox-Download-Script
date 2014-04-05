@@ -23,6 +23,7 @@ except ImportError:
 from itertools import islice
 
 URL_BASE = "http://mangafox.me/"
+MAKE_CBZ = True
 
 
 def get_page_soup(url):
@@ -59,7 +60,7 @@ def get_chapter_urls(manga_name):
         sys.exit('Error: Manga either does not exist or has no chapters')
     replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
                                     re.IGNORECASE)
-    for link in links:
+    for link in reversed(links):
         chapters[replace_manga_name.sub('', link.text).strip()] = link['href']
     return chapters
 
@@ -109,20 +110,23 @@ def download_urls(image_urls, manga_name, chapter_number):
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
+    if not MAKE_CBZ:
+        return
     zipname = dirname + '.cbz'
     images = glob.glob(os.path.abspath(dirname) + '/*.jpg')
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
-            zipfile.write(filename)
+            zipfile.write(filename, arcname=os.path.basename(filename))
+    shutil.rmtree(dirname)
 
 
 def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
-    iend = chapter_urls.keys().index(range_start) + 1
-    istart = chapter_urls.keys().index(range_end)
+    istart = chapter_urls.keys().index(range_start)
+    iend = chapter_urls.keys().index(range_end) + 1
     for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
         chapter_number = get_chapter_number(url_fragment)
         print('===============================================')
@@ -132,7 +136,6 @@ def download_manga_range(manga_name, range_start, range_end):
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         make_cbz(download_dir)
-        shutil.rmtree(download_dir)
 
 
 def download_manga(manga_name, chapter_number=None):
@@ -152,7 +155,6 @@ def download_manga(manga_name, chapter_number=None):
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         make_cbz(download_dir)
-        shutil.rmtree(download_dir)
     else:
         for chapter_number, url_fragment in chapter_urls.iteritems():
             chapter_number = get_chapter_number(url_fragment)
@@ -163,7 +165,6 @@ def download_manga(manga_name, chapter_number=None):
             download_urls(image_urls, manga_name, chapter_number)
             download_dir = './{0}/{1}'.format(manga_name, chapter_number)
             make_cbz(download_dir)
-            shutil.rmtree(download_dir)
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
