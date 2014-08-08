@@ -107,9 +107,11 @@ def download_urls(image_urls, manga_name, chapter_number):
         urllib.urlretrieve(url, filename)
 
 
-def make_cbz(dirname):
+def make_cbz(dirname, prefix=None):
     """Create CBZ files for all JPEG image files in a directory."""
-    zipname = dirname + '.cbz'
+    path = dirname.split('/')
+    path[-1] = (prefix + '-' if prefix else '') + path[-1]
+    zipname = '/'.join(path) + '.cbz'
     images = glob.glob(os.path.abspath(dirname) + '/*.jpg')
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
@@ -131,7 +133,7 @@ def download_manga_range(manga_name, range_start, range_end):
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
+        make_cbz(download_dir, manga_name)
         shutil.rmtree(download_dir)
 
 
@@ -151,7 +153,7 @@ def download_manga(manga_name, chapter_number=None):
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
+        make_cbz(download_dir, manga_name)
         shutil.rmtree(download_dir)
     else:
         for chapter_number, url_fragment in chapter_urls.iteritems():
@@ -162,7 +164,7 @@ def download_manga(manga_name, chapter_number=None):
             image_urls = get_chapter_image_urls(url_fragment)
             download_urls(image_urls, manga_name, chapter_number)
             download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-            make_cbz(download_dir)
+            make_cbz(download_dir, manga_name)
             shutil.rmtree(download_dir)
 
 if __name__ == '__main__':
