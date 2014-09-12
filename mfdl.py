@@ -3,6 +3,8 @@
 
 
 """Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
+"""Forked from siikamiika's Python 3 branch"""
+"""Edited by Kitty"""
 
 import sys
 import os
@@ -32,6 +34,7 @@ else:
 
 URL_BASE = "http://mangafox.me/"
 MAKE_CBZ = True
+DOWNLOAD_TO = "./"
 
 
 def get_page_soup(url):
@@ -146,7 +149,7 @@ def download_manga_range(manga_name, range_start, range_end):
         print('===============================================')
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
-        download_dir = './{0}/{1}'.format(manga_name, chapter_number)
+        download_dir = '{0}/{1}/{1}_{2}'.format(DOWNLOAD_TO, manga_name, chapter_number)
         make_cbz(download_dir)
 
 
@@ -165,7 +168,7 @@ def download_manga(manga_name, chapter_number=None):
         print('===============================================')
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
-        download_dir = './{0}/{1}'.format(manga_name, chapter_number)
+        download_dir = '{0}/{1}/{1}_{2}'.format(DOWNLOAD_TO, manga_name, chapter_number)
         make_cbz(download_dir)
     else:
         for chapter_number, url_fragment in chapter_urls.iteritems():
@@ -175,7 +178,7 @@ def download_manga(manga_name, chapter_number=None):
             print('===============================================')
             image_urls = get_chapter_image_urls(url_fragment)
             download_urls(image_urls, manga_name, chapter_number)
-            download_dir = './{0}/{1}'.format(manga_name, chapter_number)
+            download_dir = '{0}/{1}/{1}_{2}'.format(DOWNLOAD_TO, manga_name, chapter_number)
             make_cbz(download_dir)
 
 if __name__ == '__main__':
