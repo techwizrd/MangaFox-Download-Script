@@ -3,8 +3,6 @@
 
 
 """Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
-"""Forked from siikamiika's Python 3 branch"""
-"""Edited by Kitty"""
 
 import sys
 import os
@@ -109,12 +107,12 @@ def get_chapter_number(url_fragment):
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
-    download_dir = '{0}/{1}/'.format(manga_name, chapter_number)
+    download_dir = '{base}/{m}/{m}_{ch}/'.format(base=DOWNLOAD_TO, m=manga_name, ch=chapter_number)
     if os.path.exists(download_dir):
         shutil.rmtree(download_dir)
     os.makedirs(download_dir)
     for i, url in enumerate(image_urls):
-        filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
+        filename = '{dir}{page:03}.jpg'.format(dir=download_dir, page=i)
         print('Downloading {0} to {1}'.format(url, filename))
         urlretrieve(url, filename)
 
