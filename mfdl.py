@@ -37,13 +37,13 @@ DOWNLOAD_TO = "./"
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    with closing(urllib.urlopen(url)) as raw_data:
+    with closing(urlopen(url)) as raw_data:
         data = raw_data.read()
         try:
             html_file = zlib.decompress(data,32 + zlib.MAX_WBITS)
         except zlib.error:
             html_file = data
-        return BeautifulSoup(html_file, 'lxml')
+        return BeautifulSoup(html_file, 'html.parser')
 
 
 def get_chapter_urls(manga_name):
