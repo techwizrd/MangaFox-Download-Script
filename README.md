@@ -1,47 +1,34 @@
-Mangafox Download Script
-========================
+mfdl
+====
 
 About
 -----
-Mangafox Download Script is a manga downloader similar to my old Onemanga Download Script (although onemanga.com shut down). It works by scraping the image URL from every page in a manga chapter. It then it downloads all the images.
-I created this because I prefer reading manga with the use of a viewer like Comix. I also prefer keeping manga on my hard drive in case I am not connected to the internet.
-
-Dependencies
-------------
-
-  * Python 2.7, 3.3
-  * BeautifulSoup (``pip install beautifulsoup`` OR ``pip install beautifulsoup4``)
-
-Tested on Ubuntu Linux 12.04 LTS and 12.10. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
+mfdl (mangafox download script) is a mangafox scraper. It uses BeautifulSoup,
+re, zipfile and zlib. It should work on basically any Unix-like, not guaranteed
+on Windows. Might not work if you're using a case-insensitive file system.
 
 Usage
 -----
 To download an entire series:
 
-    ~ $ python mfdl.py [MANGA_NAME]
+    $ python mfdl.py [MANGA_NAME]
 
 To download a specific chapter:
 
-    ~ $ python mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]
+    $ python mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]
 
 To download a range of manga chapter:
 
-    ~ $ python mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]
-
-Examples
---------
-Download all of The World God Only Knows:
-
-    ~ $ python mfdl.py "The World God Only Knows"
-
-Download The World God Only Knows chapter 222.5:
-
-    ~ $ python mfdl.py "The World God Only Knows" 222.5
-
-Download The World God Only Knows chapters 190-205:
-
-    ~ $ python mfdl.py "The World God Only Knows" 190 205
+    $ python mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]
 
 Notes
 -----
-Please do not overuse and abuse this and destroy Mangafox. If you've got some cash, why not donate some to them and help them keep alive and combat server costs? I really would not like people to destroy Mangafox because of greedy downloading. Use this wisely and don't be evil.
+Please do not overuse and abuse this and destroy Mangafox. If you've got some
+cash, why not donate some to them and help them keep alive and combat server
+costs? I really would not like people to destroy Mangafox because of greedy
+downloading. Use this wisely and don't be evil.
+
+## This is a fork from [techwizrd/MangaFox-Download-Script](https://github.com/techwizrd/MangaFox-Download-Scrip).
+Since the original author apparently didn't care enough about it, I also merged
+work from [siikamiika/MangaFox-Download-Script](https://github.com/siikamiika/MangaFox-Download-Script).
+
