@@ -60,4 +60,5 @@ target/
 bin/
 local/
 include/
-
+lib64
+pyvenv.cfg
