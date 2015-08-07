@@ -42,7 +42,6 @@ def get_chapter_urls(manga_name):
     replace = lambda s, k: s.replace(k, '_')
     manga_url = reduce(replace, [' ', '-'], manga_name.lower())
     url = '{0}manga/{1}'.format(URL_BASE, manga_url)
-    print('Url: ' + url)
     soup = get_page_soup(url)
     manga_does_not_exist = soup.find('form', {'id': 'searchform'})
     if manga_does_not_exist:
@@ -80,16 +79,13 @@ def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
     print('Getting chapter urls')
     url_fragment = os.path.dirname(url_fragment) + '/'
-    chapter_url = url_fragment
-    chapter = get_page_soup(chapter_url)
+    chapter = get_page_soup(url_fragment)
     pages = get_page_numbers(chapter)
     image_urls = []
     print('Getting image urls...')
     for page in pages:
-        print('url_fragment: {0}'.format(url_fragment))
-        print('page: {0}'.format(page))
-        print('Getting image url from {0}{1}.html'.format(url_fragment, page))
-        page_soup = get_page_soup(chapter_url + page + '.html')
+        print('page: {0}'.format(page + ' -> ' + url_fragment + page + '.html'))
+        page_soup = get_page_soup(url_fragment + page + '.html')
         images = page_soup.findAll('img', {'id': 'image'})
         if images:
             image_urls.append(images[0]['src'])
@@ -109,7 +105,7 @@ def download_urls(image_urls, manga_name, chapter_number):
     os.makedirs(download_dir)
     for i, url in enumerate(image_urls):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
-        print('Downloading {0} to {1}'.format(url, filename))
+        print('dl: {0} -> {1}'.format(url, filename))
         urllib.urlretrieve(url, filename)
 
 
@@ -131,9 +127,7 @@ def download_manga_range(manga_name, range_start, range_end):
     istart = chapter_urls.keys().index(range_end)
     for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
         chapter_number = get_chapter_number(url_fragment)
-        print('===============================================')
         print('Chapter ' + chapter_number)
-        print('===============================================')
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
@@ -151,9 +145,7 @@ def download_manga(manga_name, chapter_number=None):
             error_text = 'Error: Chapter {0} does not exist'
             sys.exit(error_text.format(chapter_number))
         chapter_number = get_chapter_number(url_fragment)
-        print('===============================================')
         print('Chapter ' + chapter_number)
-        print('===============================================')
         image_urls = get_chapter_image_urls(url_fragment)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
@@ -162,9 +154,7 @@ def download_manga(manga_name, chapter_number=None):
     else:
         for chapter_number, url_fragment in chapter_urls.iteritems():
             chapter_number = get_chapter_number(url_fragment)
-            print('===============================================')
             print('Chapter ' + chapter_number)
-            print('===============================================')
             image_urls = get_chapter_image_urls(url_fragment)
             download_urls(image_urls, manga_name, chapter_number)
             download_dir = './{0}/{1}'.format(manga_name, chapter_number)
