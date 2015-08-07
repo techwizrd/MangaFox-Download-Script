@@ -133,7 +133,6 @@ def make_cbz(dirname):
 
 def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
-    print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
     for idx, ch_num in enumerate(list(chapter_urls)):
         if ch_num == range_start:
