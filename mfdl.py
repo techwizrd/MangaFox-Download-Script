@@ -1,6 +1,5 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # encoding: utf-8
-
 
 """Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
 
