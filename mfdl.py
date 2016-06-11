@@ -62,9 +62,13 @@ def get_chapter_urls(manga_name):
         sys.exit('Error: Manga either does not exist or has no chapters')
     replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
                                     re.IGNORECASE)
+
     for link in links:
         chapters[replace_manga_name.sub('', link.text).strip()] = link['href']
-    return chapters
+
+    ordered_chapters = OrderedDict(sorted(chapters.items()))
+
+    return ordered_chapters
 
 
 def get_page_numbers(soup):
