@@ -105,8 +105,20 @@ def download_urls(image_urls, manga_name, chapter_number):
     os.makedirs(download_dir)
     for i, url in enumerate(image_urls):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
+
         print('Downloading {0} to {1}'.format(url, filename))
-        urllib.request.urlretrieve(url, filename)
+
+        while True:
+            try:
+                urllib.request.urlretrieve(url, filename)
+            except urllib.error.HTTPError as http_err:
+                print ('HTTP error ', http_err.code, ": ", http_err.reason)
+            except urllib.error.ContentTooShortError:
+                print ('The image has been retrieve only partialy.')
+            except:
+                print ('Unknown error')
+            else:
+                break
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
