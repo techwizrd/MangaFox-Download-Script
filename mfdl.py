@@ -6,11 +6,13 @@
 
 import sys
 import os
-import urllib
+import urllib.request
 import glob
 import shutil
 import re
 from zipfile import ZipFile
+from functools import reduce
+
 try:
     from bs4 import BeautifulSoup
 except ImportError:
@@ -27,8 +29,8 @@ URL_BASE = "http://mangafox.me/"
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    with closing(urllib.urlopen(url)) as html_file:
-        return BeautifulSoup(html_file.read())
+    with closing(urllib.request.urlopen(url)) as html_file:
+        return BeautifulSoup(html_file.read(), "html.parser")
 
 
 def get_chapter_urls(manga_name):
@@ -104,8 +106,7 @@ def download_urls(image_urls, manga_name, chapter_number):
     for i, url in enumerate(image_urls):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
         print('Downloading {0} to {1}'.format(url, filename))
-        urllib.urlretrieve(url, filename)
-
+        urllib.request.urlretrieve(url, filename)
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
@@ -154,7 +155,7 @@ def download_manga(manga_name, chapter_number=None):
         make_cbz(download_dir)
         shutil.rmtree(download_dir)
     else:
-        for chapter_number, url_fragment in chapter_urls.iteritems():
+        for chapter_number, url_fragment in chapter_urls.items():
             chapter_number = get_chapter_number(url_fragment)
             print('===============================================')
             print('Chapter ' + chapter_number)
