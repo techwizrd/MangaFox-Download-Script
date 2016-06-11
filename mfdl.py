@@ -12,6 +12,7 @@ import shutil
 import re
 from zipfile import ZipFile
 from functools import reduce
+import time
 
 try:
     from bs4 import BeautifulSoup
@@ -109,12 +110,16 @@ def download_urls(image_urls, manga_name, chapter_number):
         print('Downloading {0} to {1}'.format(url, filename))
 
         while True:
+            time.sleep(2)
             try:
                 urllib.request.urlretrieve(url, filename)
             except urllib.error.HTTPError as http_err:
                 print ('HTTP error ', http_err.code, ": ", http_err.reason)
+                if http_err.code == 404:
+                    break
+
             except urllib.error.ContentTooShortError:
-                print ('The image has been retrieve only partialy.')
+                print ('The image has been retrieve only partially.')
             except:
                 print ('Unknown error')
             else:
