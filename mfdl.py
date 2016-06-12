@@ -10,6 +10,7 @@ import urllib.request
 import glob
 import shutil
 import re
+import math
 from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
@@ -138,7 +139,7 @@ def make_cbz(dirname):
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-def download_manga_range(manga_name, range_start, range_end):
+def download_manga(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
@@ -158,44 +159,13 @@ def download_manga_range(manga_name, range_start, range_end):
         make_cbz(download_dir)
         shutil.rmtree(download_dir)
 
-
-def download_manga(manga_name, chapter_number=None):
-    """Download all chapters of a manga"""
-    chapter_urls = get_chapter_urls(manga_name)
-    if chapter_number:
-        if chapter_number in chapter_urls:
-            url_fragment = chapter_urls[chapter_number]
-        else:
-            error_text = 'Error: Chapter {0} does not exist'
-            sys.exit(error_text.format(chapter_number))
-        chapter_number = get_chapter_number(url_fragment)
-        print('===============================================')
-        print('Chapter ' + chapter_number)
-        print('===============================================')
-        image_urls = get_chapter_image_urls(url_fragment)
-        download_urls(image_urls, manga_name, chapter_number)
-        download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
-        shutil.rmtree(download_dir)
-    else:
-        for chapter_number, url_fragment in chapter_urls.items():
-            chapter_number = get_chapter_number(url_fragment)
-            print('===============================================')
-            print('Chapter ' + chapter_number)
-            print('===============================================')
-            image_urls = get_chapter_image_urls(url_fragment)
-            download_urls(image_urls, manga_name, chapter_number)
-            download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-            make_cbz(download_dir)
-            shutil.rmtree(download_dir)
-
 if __name__ == '__main__':
     if len(sys.argv) == 4:
-        download_manga_range(sys.argv[1], sys.argv[2], sys.argv[3])
+        download_manga(sys.argv[1], sys.argv[2], sys.argv[3])
     elif len(sys.argv) == 3:
-        download_manga(sys.argv[1], sys.argv[2])
+        download_manga(sys.argv[1], sys.argv[2], sys.argv[2])
     elif len(sys.argv) == 2:
-        download_manga(sys.argv[1])
+        download_manga(sys.argv[1], 1, math.inf)
     else:
         print('USAGE: mfdl.py [MANGA_NAME]')
         print('       mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]')
