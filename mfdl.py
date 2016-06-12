@@ -5,6 +5,7 @@
 """Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
 
 import sys
+import getopt
 import os
 import urllib.request
 import glob
@@ -104,7 +105,6 @@ def download_urls(image_urls, manga_name, chapter_number):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
 
         print('Downloading {0} to {1}'.format(url, filename))
-
         while True:
             time.sleep(2)
             try:
@@ -130,16 +130,16 @@ def make_cbz(dirname):
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-def download_manga(manga_name, range_start=1, range_end=None):
+def download_manga(manga_name, range_start=1, range_end=None, do_make_cbz=False, remove=False):
     """Download a range of a chapters"""
-    print('Getting chapter urls')
+
     chapter_urls = get_chapter_urls(manga_name)
 
     if range_end == None : range_end = max(chapter_urls.keys())
 
     for chapter, url in filterfalse (lambda chapter_url:
-                                     chapter_url[0] < float(range_start)
-                                     or chapter_url[0] > float(range_end),
+                                     chapter_url[0] < range_start
+                                     or chapter_url[0] > range_end,
                                      chapter_urls.items()):
         chapter_number = get_chapter_number(url)
 
@@ -149,17 +149,54 @@ def download_manga(manga_name, range_start=1, range_end=None):
         image_urls = get_chapter_image_urls(url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
-        shutil.rmtree(download_dir)
+        if do_make_cbz is True:
+            make_cbz(download_dir)
+            if remove is True: shutil.rmtree(download_dir)
 
-if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        download_manga(sys.argv[1], sys.argv[2], sys.argv[3])
-    elif len(sys.argv) == 3:
-        download_manga(sys.argv[1], sys.argv[2], sys.argv[2])
-    elif len(sys.argv) == 2:
-        download_manga(sys.argv[1])
-    else:
-        print('USAGE: mfdl.py [MANGA_NAME]')
-        print('       mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]')
-        print('       mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]')
+def main(argv):
+    manga_name = ''
+    chapter_start = 1
+    chapter_end = None
+    make_cbz = False
+    remove_images = False
+    try:
+        opts, args = getopt.getopt(argv,"m:s:e:crh", ["manga=",
+                                                      "start=",
+                                                      "end=",
+                                                      "cbz",
+                                                      "remove",
+                                                      "help"])
+    except getopt.GetoptError:
+        print('error when parsing arguments')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage ="""
+Mandatory argument:
+  -m --manga <Manga Name>
+
+ Optional Argumentsq:
+   -s <Start At Chapter>
+   -e <End At Chapter>
+   -c Create cbz Archive
+   -r Remove image files after the creation of cbz archive"""
+            print (usage)
+            sys.exit()
+        elif opt in ("-m", "--manga"):
+            manga_name = arg
+        elif opt in ("-s", "--start"):
+            chapter_start = float(arg)
+        elif opt in ("-e", "--end"):
+            chapter_end = float(arg)
+        elif opt in ("-c", "--cbz"):
+            make_cbz = bool(arg)
+        elif opt in ("-r", "--remove"):
+            remove_images = bool(arg)
+
+    if chapter_end is None: chapter_end = chapter_start
+
+    print('Getting chapter of ', manga_name, 'from ', chapter_start, ' to ', chapter_end)
+    download_manga(manga_name, chapter_start, chapter_end, make_cbz, remove_images)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
