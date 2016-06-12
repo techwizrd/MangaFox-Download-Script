@@ -143,7 +143,8 @@ def download_manga_range(manga_name, range_start, range_end):
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
 
-    for chapter, url in filterfalse (lambda chapter_url: chapter_url[0] < float(range_start)
+    for chapter, url in filterfalse (lambda chapter_url:
+                                     chapter_url[0] < float(range_start)
                                      or chapter_url[0] > float(range_end),
                                      chapter_urls.items()):
         chapter_number = get_chapter_number(url)
