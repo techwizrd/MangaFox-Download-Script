@@ -10,7 +10,6 @@ import urllib.request
 import glob
 import shutil
 import re
-import math
 import time
 from itertools import filterfalse
 from zipfile import ZipFile
@@ -131,10 +130,12 @@ def make_cbz(dirname):
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-def download_manga(manga_name, range_start, range_end):
+def download_manga(manga_name, range_start=1, range_end=None):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
+
+    if range_end == None : range_end = max(chapter_urls.keys())
 
     for chapter, url in filterfalse (lambda chapter_url:
                                      chapter_url[0] < float(range_start)
@@ -157,7 +158,7 @@ if __name__ == '__main__':
     elif len(sys.argv) == 3:
         download_manga(sys.argv[1], sys.argv[2], sys.argv[2])
     elif len(sys.argv) == 2:
-        download_manga(sys.argv[1], 1, math.inf)
+        download_manga(sys.argv[1])
     else:
         print('USAGE: mfdl.py [MANGA_NAME]')
         print('       mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]')
