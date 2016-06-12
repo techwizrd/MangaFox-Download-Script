@@ -9,10 +9,10 @@ I created this because I prefer reading manga with the use of a viewer like Comi
 Dependencies
 ------------
 
-  * Python 2.7, 3.3
-  * BeautifulSoup (``pip install beautifulsoup`` OR ``pip install beautifulsoup4``)
+  * Python 3.3 or better
+  * BeautifulSoup (``pip install beautifulsoup4``)
 
-Tested on Ubuntu Linux 12.04 LTS and 12.10. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
+Tested on Arch Linux. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
 
 Usage
 -----

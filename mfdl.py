@@ -11,20 +11,13 @@ import glob
 import shutil
 import re
 import math
+import time
 from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
-import time
-
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 from contextlib import closing
-try:
-	from collections import OrderedDict
-except ImportError:
-	from ordereddict import OrderedDict
+from collections import OrderedDict
 
 URL_BASE = "http://mangafox.me/"
 
