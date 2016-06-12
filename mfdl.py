@@ -10,6 +10,7 @@ import urllib.request
 import glob
 import shutil
 import re
+from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
 import time
@@ -64,7 +65,7 @@ def get_chapter_urls(manga_name):
                                     re.IGNORECASE)
 
     for link in links:
-        chapters[replace_manga_name.sub('', link.text).strip()] = link['href']
+        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
 
     ordered_chapters = OrderedDict(sorted(chapters.items()))
 
@@ -100,7 +101,6 @@ def get_chapter_image_urls(url_fragment):
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
     return ''.join(url_fragment.rsplit("/")[5:-1])
-
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
@@ -138,19 +138,20 @@ def make_cbz(dirname):
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-
 def download_manga_range(manga_name, range_start, range_end):
     """Download a range of a chapters"""
     print('Getting chapter urls')
     chapter_urls = get_chapter_urls(manga_name)
-    iend = chapter_urls.keys().index(range_start) + 1
-    istart = chapter_urls.keys().index(range_end)
-    for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
-        chapter_number = get_chapter_number(url_fragment)
+
+    for chapter, url in filterfalse (lambda chapter_url: chapter_url[0] < float(range_start)
+                                     or chapter_url[0] > float(range_end),
+                                     chapter_urls.items()):
+        chapter_number = get_chapter_number(url)
+
         print('===============================================')
         print('Chapter ' + chapter_number)
         print('===============================================')
-        image_urls = get_chapter_image_urls(url_fragment)
+        image_urls = get_chapter_image_urls(url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         make_cbz(download_dir)
