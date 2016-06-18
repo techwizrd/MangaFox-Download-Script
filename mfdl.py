@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-
-"""Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
-
 import sys
 import getopt
 import os
@@ -19,14 +16,23 @@ from bs4 import BeautifulSoup
 from contextlib import closing
 from collections import OrderedDict
 
-URL_BASE = "http://mangafox.me/"
+from io import StringIO
+import gzip
 
+URL_BASE = "http://mangafox.me/"
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    with closing(urllib.request.urlopen(url)) as html_file:
-        return BeautifulSoup(html_file.read(), "html.parser")
+    response = urllib.request.urlopen(url)
+    page_content = response.read()
 
+    if response.info().get('Content-Encoding') == 'gzip':
+        gzipFile = gzip.GzipFile(fileobj=response)
+        page_content = gzipFile.read()
+
+    soup_page = BeautifulSoup(page_content, "html.parser")
+
+    return soup_page
 
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
@@ -64,12 +70,10 @@ def get_chapter_urls(manga_name):
 
     return ordered_chapters
 
-
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
     raw = soup.findAll('select', {'class': 'm'})[0]
     return (html['value'] for html in raw.findAll('option'))
-
 
 def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
@@ -86,10 +90,8 @@ def get_chapter_image_urls(url_fragment):
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
         images = page_soup.findAll('img', {'id': 'image'})
-        if images:
-            image_urls.append(images[0]['src'])
+        if images: image_urls.append(images[0]['src'])
     return image_urls
-
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
