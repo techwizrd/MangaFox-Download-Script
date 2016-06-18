@@ -32,11 +32,11 @@ To download an entire series:
 
 To download a specific chapter:
 
-    ~ $ python mfdl.py _m MANGA_NAME -s CHAPTER
+    ~ $ python mfdl.py -m MANGA_NAME -s CHAPTER
 
 To download a range of manga chapter:
 
-    ~ $ python mfdl.py python mfdl.py _m MANGA_NAME -s CHAPTER_START -e CHAPTER_END
+    ~ $ python mfdl.py python mfdl.py -m MANGA_NAME -s CHAPTER_START -e CHAPTER_END
 
 Examples
 --------
