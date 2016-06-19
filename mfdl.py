@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 import sys
-import getopt
+import argparse
 import os
 import urllib.request
 import glob
@@ -126,13 +126,13 @@ def download_urls(image_urls, manga_name, chapter_number):
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
     zipname = dirname + '.cbz'
-    images = glob.glob(os.path.abspath(dirname) + '/*.jpg')
+    images = sorted(glob.glob(os.path.abspath(dirname) + '/*.jpg'))
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-def download_manga(manga_name, range_start=1, range_end=None, do_make_cbz=False, remove=False):
+def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False):
     """Download a range of a chapters"""
 
     chapter_urls = get_chapter_urls(manga_name)
@@ -151,54 +151,45 @@ def download_manga(manga_name, range_start=1, range_end=None, do_make_cbz=False,
         image_urls = get_chapter_image_urls(url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        if do_make_cbz is True:
+        if b_make_cbz is True:
             make_cbz(download_dir)
             if remove is True: shutil.rmtree(download_dir)
 
-def main(argv):
-    manga_name = ''
-    chapter_start = 1
-    chapter_end = None
-    make_cbz = False
-    remove_images = False
-    try:
-        opts, args = getopt.getopt(argv,"m:s:e:crh", ["manga=",
-                                                      "start=",
-                                                      "end=",
-                                                      "cbz",
-                                                      "remove",
-                                                      "help"])
-    except getopt.GetoptError:
-        print('error when parsing arguments')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage ="""
-Mandatory argument:
-  -m --manga <Manga Name>
+def main():
+    parser = argparse.ArgumentParser(description='Manga Fox Downloader')
 
- Optional Argumentsq:
-   -s <Start At Chapter>
-   -e <End At Chapter>
-   -c Create cbz Archive
-   -r Remove image files after the creation of cbz archive"""
-            print (usage)
-            sys.exit()
-        elif opt in ("-m", "--manga"):
-            manga_name = arg
-        elif opt in ("-s", "--start"):
-            chapter_start = float(arg)
-        elif opt in ("-e", "--end"):
-            chapter_end = float(arg)
-        elif opt in ("-c", "--cbz"):
-            make_cbz = bool(arg)
-        elif opt in ("-r", "--remove"):
-            remove_images = bool(arg)
+    parser.add_argument('--manga', '-m',
+                        required=True,
+                        action='store',
+                        help='Manga to download')
 
-    if chapter_end is None: chapter_end = chapter_start
+    parser.add_argument('--start', '-s',
+                        action='store',
+                        type=int,
+                        default=1,
+                        help='Chapter to start downloading from')
 
-    print('Getting chapter of ', manga_name, 'from ', chapter_start, ' to ', chapter_end)
-    download_manga(manga_name, chapter_start, chapter_end, make_cbz, remove_images)
+    parser.add_argument('--end', '-e',
+                        action='store',
+                        type=int,
+                        default=None,
+                        help='Chapter to end downloading to')
+
+    parser.add_argument('--cbz', '-c',
+                        action="store_true",
+                        default=False,
+                        help="Create cbz archive after download")
+
+    parser.add_argument('--remove', '-r',
+                        action="store_true",
+                        default=False,
+                        help="Remove image files after the creation of a cbz archive")
+
+    args = parser.parse_args()
+
+    print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
+
+    download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
