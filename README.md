@@ -9,38 +9,48 @@ I created this because I prefer reading manga with the use of a viewer like Comi
 Dependencies
 ------------
 
-  * Python 2.7, 3.3
-  * BeautifulSoup (``pip install beautifulsoup`` OR ``pip install beautifulsoup4``)
+  * Python 3.3 or better
+  * BeautifulSoup (``pip install beautifulsoup4``)
 
-Tested on Ubuntu Linux 12.04 LTS and 12.10. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
+Tested on Arch Linux. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
 
 Usage
 -----
+
+Mandatory argument:
+  -m --manga <Manga Name>
+
+ Optional Argumentsq:
+   -s <Start At Chapter>
+   -e <End At Chapter>
+   -c Create cbz Archive
+   -r Remove image files after the creation of cbz archive"""
+
 To download an entire series:
 
-    ~ $ python mfdl.py [MANGA_NAME]
+    ~ $ python mfdl.py -m MANGA_NAME
 
 To download a specific chapter:
 
-    ~ $ python mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]
+    ~ $ python mfdl.py -m MANGA_NAME -s CHAPTER
 
 To download a range of manga chapter:
 
-    ~ $ python mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]
+    ~ $ python mfdl.py python mfdl.py -m MANGA_NAME -s CHAPTER_START -e CHAPTER_END
 
 Examples
 --------
 Download all of The World God Only Knows:
 
-    ~ $ python mfdl.py "The World God Only Knows"
+    ~ $ python mfdl.py -m "The World God Only Knows"
 
 Download The World God Only Knows chapter 222.5:
 
-    ~ $ python mfdl.py "The World God Only Knows" 222.5
+    ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5
 
 Download The World God Only Knows chapters 190-205:
 
-    ~ $ python mfdl.py "The World God Only Knows" 190 205
+    ~ $ python mfdl.py -m "The World God Only Knows" -s 190 -e 205
 
 Notes
 -----

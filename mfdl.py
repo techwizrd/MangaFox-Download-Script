@@ -1,35 +1,38 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-
-"""Mangafox Download Script by Kunal Sarkhel <theninja@bluedevs.net>"""
-
 import sys
+import argparse
 import os
-import urllib
+import urllib.request
 import glob
 import shutil
 import re
+import time
+from itertools import filterfalse
 from zipfile import ZipFile
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    from BeautifulSoup import BeautifulSoup
+from functools import reduce
+from bs4 import BeautifulSoup
 from contextlib import closing
-try:
-	from collections import OrderedDict
-except ImportError:
-	from ordereddict import OrderedDict
-from itertools import islice
+from collections import OrderedDict
+
+from io import StringIO
+import gzip
 
 URL_BASE = "http://mangafox.me/"
 
-
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    with closing(urllib.urlopen(url)) as html_file:
-        return BeautifulSoup(html_file.read())
+    response = urllib.request.urlopen(url)
+    page_content = response.read()
 
+    if response.info().get('Content-Encoding') == 'gzip':
+        gzipFile = gzip.GzipFile(fileobj=response)
+        page_content = gzipFile.read()
+
+    soup_page = BeautifulSoup(page_content, "html.parser")
+
+    return soup_page
 
 def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
@@ -59,16 +62,18 @@ def get_chapter_urls(manga_name):
         sys.exit('Error: Manga either does not exist or has no chapters')
     replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
                                     re.IGNORECASE)
-    for link in links:
-        chapters[replace_manga_name.sub('', link.text).strip()] = link['href']
-    return chapters
 
+    for link in links:
+        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
+
+    ordered_chapters = OrderedDict(sorted(chapters.items()))
+
+    return ordered_chapters
 
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
     raw = soup.findAll('select', {'class': 'm'})[0]
     return (html['value'] for html in raw.findAll('option'))
-
 
 def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
@@ -85,15 +90,12 @@ def get_chapter_image_urls(url_fragment):
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
         images = page_soup.findAll('img', {'id': 'image'})
-        if images:
-            image_urls.append(images[0]['src'])
+        if images: image_urls.append(images[0]['src'])
     return image_urls
-
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
     return ''.join(url_fragment.rsplit("/")[5:-1])
-
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
@@ -103,76 +105,91 @@ def download_urls(image_urls, manga_name, chapter_number):
     os.makedirs(download_dir)
     for i, url in enumerate(image_urls):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
-        print('Downloading {0} to {1}'.format(url, filename))
-        urllib.urlretrieve(url, filename)
 
+        print('Downloading {0} to {1}'.format(url, filename))
+        while True:
+            time.sleep(2)
+            try:
+                urllib.request.urlretrieve(url, filename)
+            except urllib.error.HTTPError as http_err:
+                print ('HTTP error ', http_err.code, ": ", http_err.reason)
+                if http_err.code == 404:
+                    break
+
+            except urllib.error.ContentTooShortError:
+                print ('The image has been retrieve only partially.')
+            except:
+                print ('Unknown error')
+            else:
+                break
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
     zipname = dirname + '.cbz'
-    images = glob.glob(os.path.abspath(dirname) + '/*.jpg')
+    images = sorted(glob.glob(os.path.abspath(dirname) + '/*.jpg'))
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename)
 
-
-def download_manga_range(manga_name, range_start, range_end):
+def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False):
     """Download a range of a chapters"""
-    print('Getting chapter urls')
+
     chapter_urls = get_chapter_urls(manga_name)
-    iend = chapter_urls.keys().index(range_start) + 1
-    istart = chapter_urls.keys().index(range_end)
-    for url_fragment in islice(chapter_urls.itervalues(), istart, iend):
-        chapter_number = get_chapter_number(url_fragment)
+
+    if range_end == None : range_end = max(chapter_urls.keys())
+
+    for chapter, url in filterfalse (lambda chapter_url:
+                                     chapter_url[0] < range_start
+                                     or chapter_url[0] > range_end,
+                                     chapter_urls.items()):
+        chapter_number = get_chapter_number(url)
+
         print('===============================================')
         print('Chapter ' + chapter_number)
         print('===============================================')
-        image_urls = get_chapter_image_urls(url_fragment)
+        image_urls = get_chapter_image_urls(url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
-        shutil.rmtree(download_dir)
-
-
-def download_manga(manga_name, chapter_number=None):
-    """Download all chapters of a manga"""
-    chapter_urls = get_chapter_urls(manga_name)
-    if chapter_number:
-        if chapter_number in chapter_urls:
-            url_fragment = chapter_urls[chapter_number]
-        else:
-            error_text = 'Error: Chapter {0} does not exist'
-            sys.exit(error_text.format(chapter_number))
-        chapter_number = get_chapter_number(url_fragment)
-        print('===============================================')
-        print('Chapter ' + chapter_number)
-        print('===============================================')
-        image_urls = get_chapter_image_urls(url_fragment)
-        download_urls(image_urls, manga_name, chapter_number)
-        download_dir = './{0}/{1}'.format(manga_name, chapter_number)
-        make_cbz(download_dir)
-        shutil.rmtree(download_dir)
-    else:
-        for chapter_number, url_fragment in chapter_urls.iteritems():
-            chapter_number = get_chapter_number(url_fragment)
-            print('===============================================')
-            print('Chapter ' + chapter_number)
-            print('===============================================')
-            image_urls = get_chapter_image_urls(url_fragment)
-            download_urls(image_urls, manga_name, chapter_number)
-            download_dir = './{0}/{1}'.format(manga_name, chapter_number)
+        if b_make_cbz is True:
             make_cbz(download_dir)
-            shutil.rmtree(download_dir)
+            if remove is True: shutil.rmtree(download_dir)
 
-if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        download_manga_range(sys.argv[1], sys.argv[2], sys.argv[3])
-    elif len(sys.argv) == 3:
-        download_manga(sys.argv[1], sys.argv[2])
-    elif len(sys.argv) == 2:
-        download_manga(sys.argv[1])
-    else:
-        print('USAGE: mfdl.py [MANGA_NAME]')
-        print('       mfdl.py [MANGA_NAME] [CHAPTER_NUMBER]')
-        print('       mfdl.py [MANGA_NAME] [RANGE_START] [RANGE_END]')
+def main():
+    parser = argparse.ArgumentParser(description='Manga Fox Downloader')
+
+    parser.add_argument('--manga', '-m',
+                        required=True,
+                        action='store',
+                        help='Manga to download')
+
+    parser.add_argument('--start', '-s',
+                        action='store',
+                        type=int,
+                        default=1,
+                        help='Chapter to start downloading from')
+
+    parser.add_argument('--end', '-e',
+                        action='store',
+                        type=int,
+                        default=None,
+                        help='Chapter to end downloading to')
+
+    parser.add_argument('--cbz', '-c',
+                        action="store_true",
+                        default=False,
+                        help="Create cbz archive after download")
+
+    parser.add_argument('--remove', '-r',
+                        action="store_true",
+                        default=False,
+                        help="Remove image files after the creation of a cbz archive")
+
+    args = parser.parse_args()
+
+    print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
+
+    download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
+
+if __name__ == "__main__":
+    main()
