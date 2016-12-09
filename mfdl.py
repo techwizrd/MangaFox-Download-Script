@@ -23,11 +23,11 @@ URL_BASE = "http://mangafox.me/"
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
     response = urllib.request.urlopen(url)
-    page_content = response.read()
-
     if response.info().get('Content-Encoding') == 'gzip':
         gzipFile = gzip.GzipFile(fileobj=response)
         page_content = gzipFile.read()
+    else:
+        page_content = response.read()
 
     soup_page = BeautifulSoup(page_content, "html.parser")
 
@@ -60,7 +60,7 @@ def get_chapter_urls(manga_name):
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
 
-    #the chapter name is the trailling float of the link text
+    #the chapter number is the trailling float of the link text
     get_chapter_from_text = re.compile("[-+]?([0-9]*\.[0-9]+|[0-9]+)$")
 
     for link in links:
@@ -85,11 +85,10 @@ def get_chapter_image_urls(url_fragment):
     image_urls = []
     print('Getting image urls...')
     for page in pages:
-        print('url_fragment: {0}'.format(url_fragment))
-        print('page: {0}'.format(page))
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
         images = page_soup.findAll('img', {'id': 'image'})
+        print('Image  : ', images)
         if images: image_urls.append(images[0]['src'])
     return image_urls
 
@@ -192,4 +191,7 @@ def main():
     download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
 
 if __name__ == "__main__":
+    opener=urllib.request.build_opener()
+    opener.addheaders=[('User-Agent','Mozilla/5.0')]
+    urllib.request.install_opener(opener)
     main()
