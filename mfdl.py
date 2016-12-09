@@ -9,15 +9,14 @@ import glob
 import shutil
 import re
 import time
+import gzip
 from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
 from bs4 import BeautifulSoup
 from contextlib import closing
 from collections import OrderedDict
-
 from io import StringIO
-import gzip
 
 URL_BASE = "http://mangafox.me/"
 
@@ -60,11 +59,12 @@ def get_chapter_urls(manga_name):
     links = soup.findAll('a', {'class': 'tips'})
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
-    replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
-                                    re.IGNORECASE)
+
+    #the chapter name is the trailling float of the link text
+    get_chapter_from_text = re.compile("[-+]?([0-9]*\.[0-9]+|[0-9]+)$")
 
     for link in links:
-        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
+        chapters[float(get_chapter_from_text.search(link.text).group(0))] = link['href']
 
     ordered_chapters = OrderedDict(sorted(chapters.items()))
 
