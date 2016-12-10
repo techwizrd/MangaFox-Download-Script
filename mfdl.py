@@ -184,11 +184,20 @@ def main():
                         default=False,
                         help="Remove image files after the creation of a cbz archive")
 
+    parser.add_argument('--list', '-l',
+                        action="store_true",
+                        default=False,
+                        help="List chapters")
+
     args = parser.parse_args()
 
-    print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
-
-    download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
+    if args.list is True:
+        chapter_urls = get_chapter_urls(args.manga)
+        for chapter_url in chapter_urls:
+            print (chapter_url)
+    else:
+        print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
+        download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
 
 if __name__ == "__main__":
     opener=urllib.request.build_opener()

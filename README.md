@@ -24,7 +24,8 @@ Mandatory argument:
    -s <Start At Chapter>
    -e <End At Chapter>
    -c Create cbz Archive
-   -r Remove image files after the creation of cbz archive"""
+   -r Remove image files after the creation of cbz archive
+   -l List Chapters
 
 To download an entire series:
 
