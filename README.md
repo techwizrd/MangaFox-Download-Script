@@ -20,7 +20,7 @@ Usage
 Mandatory argument:
   -m --manga <Manga Name>
 
- Optional Argumentsq:
+ Optional Arguments:
    -s <Start At Chapter>
    -e <End At Chapter>
    -c Create cbz Archive
