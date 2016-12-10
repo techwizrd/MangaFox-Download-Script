@@ -164,13 +164,13 @@ def main():
 
     parser.add_argument('--start', '-s',
                         action='store',
-                        type=int,
+                        type=float,
                         default=1,
                         help='Chapter to start downloading from')
 
     parser.add_argument('--end', '-e',
                         action='store',
-                        type=int,
+                        type=float,
                         default=None,
                         help='Chapter to end downloading to')
 
