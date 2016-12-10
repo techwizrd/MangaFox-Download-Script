@@ -47,6 +47,10 @@ Download all of The World God Only Knows:
 
 Download The World God Only Knows chapter 222.5:
 
+    ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5 -e 222.5
+
+Download The World God Only Knows from chapter to end:
+
     ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5
 
 Download The World God Only Knows chapters 190-205:
