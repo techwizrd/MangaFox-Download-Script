@@ -129,7 +129,7 @@ def make_cbz(dirname):
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
-            zipfile.write(filename)
+            zipfile.write(filename, arcname=os.path.basename(filename))
 
 def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False):
     """Download a range of a chapters"""
