@@ -87,9 +87,12 @@ def get_chapter_image_urls(url_fragment):
     for page in pages:
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
-        images = page_soup.findAll('img', {'id': 'image'})
-        print('Image  : ', images)
-        if images: image_urls.append(images[0]['src'])
+        image = page_soup.find('img', {'id': 'image'})
+        if image:
+            print('Image  : ', image['src'])
+            image_urls.append(image['src'])
+        else:
+            print("Image not found on page...")
     return image_urls
 
 def get_chapter_number(url_fragment):
