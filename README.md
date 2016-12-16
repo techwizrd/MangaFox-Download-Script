@@ -16,15 +16,17 @@ Tested on Arch Linux. It should work on any Linux, OS X, or Windows machine as l
 
 Usage
 -----
-
+<pre>
 Mandatory argument:
   -m --manga <Manga Name>
 
- Optional Argumentsq:
+ Optional Arguments:
    -s <Start At Chapter>
    -e <End At Chapter>
    -c Create cbz Archive
-   -r Remove image files after the creation of cbz archive"""
+   -r Remove image files after the creation of cbz archive
+   -l List Chapters
+</pre>
 
 To download an entire series:
 
@@ -32,7 +34,7 @@ To download an entire series:
 
 To download a specific chapter:
 
-    ~ $ python mfdl.py -m MANGA_NAME -s CHAPTER
+    ~ $ python mfdl.py -m MANGA_NAME -s CHAPTER -e CHAPTER
 
 To download a range of manga chapter:
 
@@ -45,6 +47,10 @@ Download all of The World God Only Knows:
     ~ $ python mfdl.py -m "The World God Only Knows"
 
 Download The World God Only Knows chapter 222.5:
+
+    ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5 -e 222.5
+
+Download The World God Only Knows from chapter:
 
     ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5
 
