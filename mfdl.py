@@ -110,7 +110,22 @@ def download_urls(image_urls, manga_name, chapter_number):
         while True:
             time.sleep(2)
             try:
-                urllib.request.urlretrieve(url, filename)
+                response = urllib.request.urlopen(url)
+                status_code = response.getcode()
+
+                if status_code >= 200 and status_code < 300:
+                    with open(filename, 'wb') as out_file:
+                        shutil.copyfileobj(response, out_file)
+                        break
+                elif status_code >= 400 and status_code < 500:
+                    print('Error: received HTTP status code "%d" (Client error).' % status_code)
+                    break
+                elif status_code >= 500 and status_code < 600:
+                    print('Warning: received HTTP status code "%d" (Server error).' % status_code)
+                    time.sleep(2)
+                else:
+                    print ('Error: received unhandled HTTP status code: "%d".' % status_code)
+
             except urllib.error.HTTPError as http_err:
                 print ('HTTP error ', http_err.code, ": ", http_err.reason)
                 if http_err.code == 404:
