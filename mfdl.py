@@ -24,11 +24,12 @@ URL_BASE = "http://mangafox.me/"
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
     response = urllib.request.urlopen(url)
-    page_content = response.read()
 
     if response.info().get('Content-Encoding') == 'gzip':
         gzipFile = gzip.GzipFile(fileobj=response)
         page_content = gzipFile.read()
+    else:
+        page_content = response.read()
 
     soup_page = BeautifulSoup(page_content, "html.parser")
 
