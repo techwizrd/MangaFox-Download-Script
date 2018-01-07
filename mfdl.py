@@ -24,7 +24,7 @@ URL_BASE = "http://mangafox.la/"
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    sleep(10)
+    sleep(5)
     connected = False
 
     while not connected:
@@ -32,7 +32,7 @@ def get_page_soup(url):
             response = urllib.request.urlopen(url)
             connected = True
         except:
-            sleep(3)
+            sleep(2)
             print('Oh no! An Error! Trying again now...')
             pass
        
@@ -66,14 +66,18 @@ def get_chapter_urls(manga_name):
     if warning and 'licensed' in warning.text:
         sys.exit('Error: ' + warning.text)
     chapters = OrderedDict()
-    links = soup.findAll('a', {'class': 'tips'})
+    links = soup.find_all('a', {'class': 'tips'})
+
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
+
     replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
                                     re.IGNORECASE)
 
     for link in links:
-        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
+        floatcon = replace_manga_name.sub('', link.text).strip()
+        line = re.sub('[^0-9]+',"",floatcon)
+        chapters[float(line)] = link['href']
 
     ordered_chapters = OrderedDict(sorted(chapters.items()))
 
