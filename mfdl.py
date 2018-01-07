@@ -32,6 +32,7 @@ def get_page_soup(url):
             response = urllib.request.urlopen(url)
             connected = True
         except:
+            sleep(3)
             print('Oh no! An Error! Trying again now...')
             pass
        
