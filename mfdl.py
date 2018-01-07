@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# encoding: utf-8
+# encoding: utf-8-sig
 
 import sys
 import argparse
@@ -15,23 +15,32 @@ from functools import reduce
 from bs4 import BeautifulSoup
 from contextlib import closing
 from collections import OrderedDict
+from time import sleep
 
 from io import StringIO
 import gzip
 
-URL_BASE = "http://mangafox.me/"
+URL_BASE = "http://mangafox.la/"
 
 def get_page_soup(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    response = urllib.request.urlopen(url)
-    page_content = response.read()
+    sleep(5)
+    connected = False
 
+    while not connected:
+        try:
+            response = urllib.request.urlopen(url)
+            connected = True
+        except:
+            sleep(2)
+            print('Oh no! An Error! Trying again now...')
+            pass
+       
+    page_content = response.read()
     if response.info().get('Content-Encoding') == 'gzip':
         gzipFile = gzip.GzipFile(fileobj=response)
         page_content = gzipFile.read()
-
     soup_page = BeautifulSoup(page_content, "html.parser")
-
     return soup_page
 
 def get_chapter_urls(manga_name):
@@ -57,14 +66,18 @@ def get_chapter_urls(manga_name):
     if warning and 'licensed' in warning.text:
         sys.exit('Error: ' + warning.text)
     chapters = OrderedDict()
-    links = soup.findAll('a', {'class': 'tips'})
+    links = soup.find_all('a', {'class': 'tips'})
+
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
+
     replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
                                     re.IGNORECASE)
 
     for link in links:
-        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
+        floatcon = replace_manga_name.sub('', link.text).strip()
+        line = re.sub('[^0-9]+',"",floatcon)
+        chapters[float(line)] = link['href']
 
     ordered_chapters = OrderedDict(sorted(chapters.items()))
 
@@ -79,7 +92,7 @@ def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
     print('Getting chapter urls')
     url_fragment = os.path.dirname(url_fragment) + '/'
-    chapter_url = url_fragment
+    chapter_url = 'http:' + url_fragment
     chapter = get_page_soup(chapter_url)
     pages = get_page_numbers(chapter)
     image_urls = []
@@ -89,13 +102,13 @@ def get_chapter_image_urls(url_fragment):
         print('page: {0}'.format(page))
         print('Getting image url from {0}{1}.html'.format(url_fragment, page))
         page_soup = get_page_soup(chapter_url + page + '.html')
-        images = page_soup.findAll('img', {'id': 'image'})
+        images = page_soup.find_all('img', attrs={'id': 'image'})
         if images: image_urls.append(images[0]['src'])
     return image_urls
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
-    return ''.join(url_fragment.rsplit("/")[5:-1])
+    return ' '.join(url_fragment.rsplit("/")[5:-1])
 
 def download_urls(image_urls, manga_name, chapter_number):
     """Download all images from a list"""
@@ -148,6 +161,7 @@ def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, 
         print('===============================================')
         print('Chapter ' + chapter_number)
         print('===============================================')
+        
         image_urls = get_chapter_image_urls(url)
         download_urls(image_urls, manga_name, chapter_number)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
