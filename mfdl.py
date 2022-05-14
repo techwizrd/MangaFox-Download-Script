@@ -39,7 +39,6 @@ def get_page_content(url):
 
     request = urllib.request.Request(url)
     request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36")
-    request.add_header("Cookie", "isAdult=1")
     request.add_header("Referer", URL_BASE)
     response = urllib.request.urlopen(request)
 
