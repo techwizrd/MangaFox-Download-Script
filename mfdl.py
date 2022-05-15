@@ -9,6 +9,7 @@ import glob
 import shutil
 import re
 import time
+import random
 from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
@@ -149,8 +150,9 @@ def get_chapter_number(url_fragment):
         return None
     return chapter_match.group()[2:-1]
 
-def download_urls(image_urls, manga_name, chapter_number):
+def download_urls(image_urls, manga_name, chapter_number, avg_delay=2.0):
     """Download all images from a list"""
+    random.seed()
     download_dir = '{0}/{1}/'.format(manga_name, chapter_number)
     if os.path.exists(download_dir):
         shutil.rmtree(download_dir)
@@ -170,7 +172,9 @@ def download_urls(image_urls, manga_name, chapter_number):
         with open(filename, 'b+w') as f:
             f.write(data)
 
-        time.sleep(2)
+        # Use a random delay to look less like a scraper
+        delaytime = random.uniform(avg_delay * 0.6, avg_delay * 1.4)
+        time.sleep(delaytime)
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
@@ -181,7 +185,7 @@ def make_cbz(dirname):
             print('writing {0} to {1}'.format(filename, zipname))
             zipfile.write(filename, os.path.basename(filename))
 
-def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False):
+def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False, avg_delay=2.0):
     """Download a range of a chapters"""
 
     chapter_urls = get_chapter_urls(manga_name)
@@ -200,7 +204,7 @@ def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, 
         print('Chapter ' + chapter_number)
         print('===============================================')
         image_urls = get_chapter_image_urls(url)
-        download_urls(image_urls, manga_name, chapter_number)
+        download_urls(image_urls, manga_name, chapter_number, avg_delay)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         if b_make_cbz is True:
             make_cbz(download_dir)
@@ -241,6 +245,12 @@ def main():
                         default=False,
                         help="Enable HTTP request debug logging")
 
+    parser.add_argument('--delay', '-l',
+                        action="store",
+                        type=float,
+                        default=2.0,
+                        help="Average delay between image requests (seconds)")
+
     args = parser.parse_args()
 
     print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
@@ -248,7 +258,7 @@ def main():
     if args.debug:
         debug_http_requests()
 
-    download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
+    download_manga(args.manga, args.start, args.end, args.cbz, args.remove, args.delay)
 
 if __name__ == "__main__":
     main()
