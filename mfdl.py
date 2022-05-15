@@ -9,6 +9,7 @@ import glob
 import shutil
 import re
 import time
+import random
 from itertools import filterfalse
 from zipfile import ZipFile
 from functools import reduce
@@ -19,11 +20,28 @@ from collections import OrderedDict
 from io import StringIO
 import gzip
 
-URL_BASE = "http://mangafox.me/"
+URL_BASE = "https://m.fanfox.net/"
 
-def get_page_soup(url):
+
+def debug_http_requests():
+    http_handler = urllib.request.HTTPHandler(debuglevel = 1)
+    https_handler = urllib.request.HTTPSHandler(debuglevel = 1)
+    opener = urllib.request.build_opener(http_handler, https_handler)
+    urllib.request.install_opener(opener)
+
+def get_page_content(url):
     """Download a page and return a BeautifulSoup object of the html"""
-    response = urllib.request.urlopen(url)
+    if url[0:2] == '//':
+        # Absolute URL with no protocol
+        url = 'https:' + url
+    elif url[0] == '/':
+        # Relative URL
+        url = URL_BASE + url
+
+    request = urllib.request.Request(url)
+    request.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36")
+    request.add_header("Referer", URL_BASE)
+    response = urllib.request.urlopen(request)
 
     if response.info().get('Content-Encoding') == 'gzip':
         gzipFile = gzip.GzipFile(fileobj=response)
@@ -31,6 +49,11 @@ def get_page_soup(url):
     else:
         page_content = response.read()
 
+    return page_content
+
+def get_page_soup(url):
+    print('Parsing page: ' + url)
+    page_content = get_page_content(url)
     soup_page = BeautifulSoup(page_content, "html.parser")
 
     return soup_page
@@ -39,33 +62,48 @@ def get_chapter_urls(manga_name):
     """Get the chapter list for a manga"""
     replace = lambda s, k: s.replace(k, '_')
     manga_url = reduce(replace, [' ', '-'], manga_name.lower())
-    url = '{0}manga/{1}'.format(URL_BASE, manga_url)
+    url = '{0}manga/{1}/'.format(URL_BASE, manga_url)
     print('Url: ' + url)
     soup = get_page_soup(url)
-    manga_does_not_exist = soup.find('form', {'id': 'searchform'})
+    
+    # If the title does not exist, a search page will be returned
+    manga_does_not_exist = soup.find('form', {'name': 'searchform'})
     if manga_does_not_exist:
         search_sort_options = 'sort=views&order=za'
         url = '{0}/search.php?name={1}&{2}'.format(URL_BASE,
                                                    manga_url,
                                                    search_sort_options)
         soup = get_page_soup(url)
-        results = soup.findAll('a', {'class': 'series_preview'})
+        results = soup.find_all('a', {'class': 'series_preview'})
         error_text = 'Error: Manga \'{0}\' does not exist'.format(manga_name)
         error_text += '\nDid you meant one of the following?\n  * '
         error_text += '\n  * '.join([manga.text for manga in results][:10])
         sys.exit(error_text)
+
+    # Check if this manga has been licensed
     warning = soup.find('div', {'class': 'warning'})
     if warning and 'licensed' in warning.text:
         sys.exit('Error: ' + warning.text)
-    chapters = OrderedDict()
-    links = soup.findAll('a', {'class': 'tips'})
+
+    # Get chapter list
+    # Chapter links will have the form /vNN/cNNN/1.html
+    # or /cNNN/1.html
+    links = soup.find_all('a', href = re.compile('/{0}/(.*/)?c\d+/.*\.html'.format(manga_url)))
     if(len(links) == 0):
         sys.exit('Error: Manga either does not exist or has no chapters')
-    replace_manga_name = re.compile(re.escape(manga_name.replace('_', ' ')),
-                                    re.IGNORECASE)
 
+    chapters = OrderedDict()
     for link in links:
-        chapters[float(replace_manga_name.sub('', link.text).strip())] = link['href']
+        # Ignore the "Read Now" button
+        if link.get('class'):
+            continue
+        chapter_id = get_chapter_number(link['href'])
+        if chapter_id == None:
+            continue
+        chapters[float(chapter_id)] = link['href']
+
+    if len(chapters) == 0:
+        sys.exit('Error: Manga has no chapters')
 
     ordered_chapters = OrderedDict(sorted(chapters.items()))
 
@@ -73,33 +111,48 @@ def get_chapter_urls(manga_name):
 
 def get_page_numbers(soup):
     """Return the list of page numbers from the parsed page"""
-    raw = soup.findAll('select', {'class': 'm'})[0]
-    return (html['value'] for html in raw.findAll('option'))
+    page_select = soup.find('select', {'class': 'mangaread-page'})
+    pages = page_select.find_all('option')
+    page_max = 1
+    for page in pages:
+        page_max = max(page_max, int(page.text))
+
+    return range(1, page_max)
 
 def get_chapter_image_urls(url_fragment):
     """Find all image urls of a chapter and return them"""
-    print('Getting chapter urls')
-    url_fragment = os.path.dirname(url_fragment) + '/'
-    chapter_url = url_fragment
-    chapter = get_page_soup(chapter_url)
+    chapter_number = get_chapter_number(url_fragment)
+    print('Getting page urls for chapter {0}'.format(chapter_number))
+
+    chapter = get_page_soup(url_fragment)
     pages = get_page_numbers(chapter)
+
+    chapter_url = os.path.dirname(url_fragment) + '/'
     image_urls = []
-    print('Getting image urls...')
+    print('Getting {0} image urls for chapter {1}...'.format(len(pages), chapter_number))
     for page in pages:
-        print('url_fragment: {0}'.format(url_fragment))
+        page_url = '{0}{1}.html'.format(chapter_url, page)
         print('page: {0}'.format(page))
-        print('Getting image url from {0}{1}.html'.format(url_fragment, page))
-        page_soup = get_page_soup(chapter_url + page + '.html')
-        images = page_soup.findAll('img', {'id': 'image'})
+        print('Getting image url from {0}'.format(page_url))
+        page_soup = get_page_soup(page_url)
+        image_div = page_soup.find('div', id='viewer')
+        if image_div == None:
+            continue
+        images = image_div.find_all('img')
         if images: image_urls.append(images[0]['src'])
     return image_urls
 
 def get_chapter_number(url_fragment):
     """Parse the url fragment and return the chapter number."""
-    return ''.join(url_fragment.rsplit("/")[5:-1])
+    re_chapter = re.compile('/c\d+/')
+    chapter_match = re_chapter.search(url_fragment)
+    if chapter_match == None:
+        return None
+    return chapter_match.group()[2:-1]
 
-def download_urls(image_urls, manga_name, chapter_number):
+def download_urls(image_urls, manga_name, chapter_number, avg_delay=2.0):
     """Download all images from a list"""
+    random.seed()
     download_dir = '{0}/{1}/'.format(manga_name, chapter_number)
     if os.path.exists(download_dir):
         shutil.rmtree(download_dir)
@@ -108,21 +161,20 @@ def download_urls(image_urls, manga_name, chapter_number):
         filename = './{0}/{1}/{2:03}.jpg'.format(manga_name, chapter_number, i)
 
         print('Downloading {0} to {1}'.format(url, filename))
-        while True:
-            time.sleep(2)
-            try:
-                urllib.request.urlretrieve(url, filename)
-            except urllib.error.HTTPError as http_err:
-                print ('HTTP error ', http_err.code, ": ", http_err.reason)
-                if http_err.code == 404:
-                    break
+        try:
+            data = get_page_content(url)
+        except urllib.error.HTTPError as http_err:
+            print('HTTP error: {0} {1}'.format(http_err.code, http_err.reason))
+            if http_err.code == 404:
+                # Skip this page
+                continue
 
-            except urllib.error.ContentTooShortError:
-                print ('The image has been retrieve only partially.')
-            except:
-                print ('Unknown error')
-            else:
-                break
+        with open(filename, 'b+w') as f:
+            f.write(data)
+
+        # Use a random delay to look less like a scraper
+        delaytime = random.uniform(avg_delay * 0.6, avg_delay * 1.4)
+        time.sleep(delaytime)
 
 def make_cbz(dirname):
     """Create CBZ files for all JPEG image files in a directory."""
@@ -131,9 +183,9 @@ def make_cbz(dirname):
     with closing(ZipFile(zipname, 'w')) as zipfile:
         for filename in images:
             print('writing {0} to {1}'.format(filename, zipname))
-            zipfile.write(filename)
+            zipfile.write(filename, os.path.basename(filename))
 
-def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False):
+def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, remove=False, avg_delay=2.0):
     """Download a range of a chapters"""
 
     chapter_urls = get_chapter_urls(manga_name)
@@ -145,12 +197,14 @@ def download_manga(manga_name, range_start=1, range_end=None, b_make_cbz=False, 
                                      or chapter_url[0] > range_end,
                                      chapter_urls.items()):
         chapter_number = get_chapter_number(url)
+        if chapter_number == None:
+            continue
 
         print('===============================================')
         print('Chapter ' + chapter_number)
         print('===============================================')
         image_urls = get_chapter_image_urls(url)
-        download_urls(image_urls, manga_name, chapter_number)
+        download_urls(image_urls, manga_name, chapter_number, avg_delay)
         download_dir = './{0}/{1}'.format(manga_name, chapter_number)
         if b_make_cbz is True:
             make_cbz(download_dir)
@@ -186,11 +240,25 @@ def main():
                         default=False,
                         help="Remove image files after the creation of a cbz archive")
 
+    parser.add_argument('--debug', '-d',
+                        action="store_true",
+                        default=False,
+                        help="Enable HTTP request debug logging")
+
+    parser.add_argument('--delay', '-l',
+                        action="store",
+                        type=float,
+                        default=2.0,
+                        help="Average delay between image requests (seconds)")
+
     args = parser.parse_args()
 
     print('Getting chapter of ', args.manga, 'from ', args.start, ' to ', args.end)
 
-    download_manga(args.manga, args.start, args.end, args.cbz, args.remove)
+    if args.debug:
+        debug_http_requests()
+
+    download_manga(args.manga, args.start, args.end, args.cbz, args.remove, args.delay)
 
 if __name__ == "__main__":
     main()
