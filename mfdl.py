@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import concurrent.futures
 import gzip
 import os
 import random
@@ -9,6 +10,7 @@ import shutil
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from collections.abc import Iterable
@@ -23,12 +25,18 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 URL_BASE = "https://m.fanfox.net/"
+DESKTOP_URL_BASE = "https://fanfox.net/"
 DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
     "Referer": URL_BASE,
+}
+PROFILE_DEFAULTS = {
+    "safe": {"workers": 2, "avg_delay": 2.0, "max_retries": 5},
+    "balanced": {"workers": 4, "avg_delay": 1.0, "max_retries": 4},
+    "aggressive": {"workers": 8, "avg_delay": 0.4, "max_retries": 3},
 }
 
 
@@ -49,6 +57,11 @@ def normalize_url(url: str) -> str:
 
 def request_url(url: str) -> urllib.request.Request:
     return urllib.request.Request(normalize_url(url), headers=DEFAULT_HEADERS)
+
+
+def request_url_with_headers(url: str, headers: dict[str, str]) -> urllib.request.Request:
+    request_headers = {**DEFAULT_HEADERS, **headers}
+    return urllib.request.Request(normalize_url(url), headers=request_headers)
 
 
 def read_response_content(response: Any) -> bytes:
@@ -72,8 +85,15 @@ def get_page_content(url: str) -> tuple[int, str, bytes]:
         return status, content_type, payload
 
 
+def get_page_content_with_headers(url: str, headers: dict[str, str]) -> tuple[int, str, bytes]:
+    with closing(urllib.request.urlopen(request_url_with_headers(url, headers))) as response:
+        status = response.getcode()
+        content_type = response.headers.get_content_type()
+        payload = read_response_content(response)
+        return status, content_type, payload
+
+
 def get_page_soup(url: str) -> BeautifulSoup:
-    print(f"Parsing page: {url}")
     _, _, page_content = get_page_content(url)
     return BeautifulSoup(page_content, "html.parser")
 
@@ -88,7 +108,6 @@ def manga_to_slug(manga_name: str) -> str:
 def get_chapter_urls(manga_name: str) -> OrderedDict[float, str]:
     manga_slug = manga_to_slug(manga_name)
     url = f"{URL_BASE}manga/{manga_slug}/"
-    print(f"URL: {url}")
 
     soup = get_page_soup(url)
     manga_does_not_exist = soup.find("form", {"name": "searchform"})
@@ -152,16 +171,16 @@ def get_chapter_image_urls(url_fragment: str) -> list[str]:
     if chapter_number is None:
         raise SystemExit(f"Error: invalid chapter URL fragment: {url_fragment}")
 
-    print(f"Getting page URLs for chapter {chapter_number:g}")
     chapter_soup = get_page_soup(url_fragment)
-    pages = get_page_numbers(chapter_soup)
+    try:
+        pages = get_page_numbers(chapter_soup)
+    except SystemExit:
+        return get_chapter_image_urls_desktop(url_fragment)
 
     chapter_base_url = os.path.dirname(url_fragment.rstrip("/")) + "/"
     image_urls: list[str] = []
-    print(f"Getting {len(pages)} image URLs...")
     for page in pages:
         page_url = f"{chapter_base_url}{page}.html"
-        print(f"Getting image URL from {page_url}")
         page_soup = get_page_soup(page_url)
         viewer_div = page_soup.find("div", id="viewer")
         image = None
@@ -178,6 +197,94 @@ def get_chapter_image_urls(url_fragment: str) -> list[str]:
                 print(f"Warning: invalid image src for page {page_url}")
         else:
             print(f"Warning: image not found for page {page_url}")
+
+    return image_urls
+
+
+def unpack_eval_packer(source: str) -> str:
+    match = re.search(r"\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\),0,\{\}\)\)", source, re.S)
+    if match is None:
+        raise SystemExit("Error: Unable to parse chapter image payload")
+
+    payload, base, _count, symbols = match.groups()
+    base_int = int(base)
+    words = symbols.split("|")
+
+    payload = payload.replace("\\'", "'").replace("\\\\", "\\")
+
+    def replace_token(token_match: re.Match[str]) -> str:
+        token = token_match.group(0)
+        try:
+            index = int(token, base_int if base_int <= 36 else 36)
+        except ValueError:
+            return token
+        if index < len(words) and words[index]:
+            return words[index]
+        return token
+
+    return re.sub(r"\b\w+\b", replace_token, payload)
+
+
+def get_chapter_image_urls_desktop(url_fragment: str) -> list[str]:
+    chapter_url = normalize_url(url_fragment).replace("m.fanfox.net", "fanfox.net")
+
+    _, _, chapter_content = get_page_content_with_headers(chapter_url, {"Referer": chapter_url})
+    chapter_html = chapter_content.decode("utf-8", "ignore")
+
+    chapter_id_match = re.search(r"var\s+chapterid\s*=\s*(\d+);", chapter_html)
+    image_count_match = re.search(r"var\s+imagecount\s*=\s*(\d+);", chapter_html)
+    if chapter_id_match is None or image_count_match is None:
+        raise SystemExit("Error: Unable to parse chapter metadata")
+
+    chapter_id = chapter_id_match.group(1)
+    image_count = int(image_count_match.group(1))
+
+    chapter_soup = BeautifulSoup(chapter_html, "html.parser")
+    key_input = chapter_soup.find("input", {"id": "dm5_key"})
+    key = ""
+    if key_input and isinstance(key_input.get("value"), str):
+        key = key_input["value"]
+
+    chapterfun_url = urllib.parse.urljoin(DESKTOP_URL_BASE, "chapterfun.ashx")
+    image_urls: list[str] = []
+    for page in range(1, image_count + 1):
+        query = urllib.parse.urlencode({"cid": chapter_id, "page": page, "key": key})
+        request_url = f"{chapterfun_url}?{query}"
+        _, _, payload = get_page_content_with_headers(
+            request_url,
+            {
+                "Referer": chapter_url,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        )
+        unpacked = unpack_eval_packer(payload.decode("utf-8", "ignore"))
+
+        base_match = re.search(r'var\s+pix\s*=\s*"([^"]+)";', unpacked)
+        values_match = re.search(r"var\s+pvalue\s*=\s*\[(.*?)\];", unpacked, re.S)
+        if base_match is None or values_match is None:
+            print(f"Warning: unable to parse image payload for page {page}")
+            continue
+
+        base_path = base_match.group(1)
+        values = re.findall(r'"([^"]+)"', values_match.group(1))
+        if not values:
+            print(f"Warning: no image values found for page {page}")
+            continue
+
+        first_value = values[0]
+        if first_value.startswith("http://") or first_value.startswith("https://"):
+            image_url = first_value
+        elif first_value.startswith("//"):
+            image_url = f"https:{first_value}"
+        elif first_value.startswith("/"):
+            image_url = f"{base_path}{first_value}"
+        else:
+            image_url = first_value
+
+        image_urls.append(image_url)
+
+    if not image_urls:
+        raise SystemExit("Error: Unable to determine chapter image URLs")
 
     return image_urls
 
@@ -200,6 +307,7 @@ def download_urls(
     chapter_number: float,
     avg_delay: float = 2.0,
     max_retries: int = 5,
+    workers: int = 1,
 ) -> None:
     image_list = list(image_urls)
     chapter_label = f"{chapter_number:g}"
@@ -209,13 +317,8 @@ def download_urls(
     download_dir.mkdir(parents=True)
 
     random.seed()
-    progress = tqdm(
-        image_list,
-        desc=f"Chapter {chapter_label}",
-        unit="img",
-        disable=not sys.stderr.isatty(),
-    )
-    for index, url in enumerate(progress):
+
+    def download_image(index: int, url: str) -> None:
         filename = download_dir / f"{index:03}.jpg"
 
         attempt = 0
@@ -246,13 +349,32 @@ def download_urls(
                 retry_delay = random.uniform(avg_delay * 0.6, avg_delay * 1.4)
                 time.sleep(retry_delay)
 
+    with tqdm(
+        total=len(image_list),
+        desc=f"Chapter {chapter_label}",
+        unit="img",
+        disable=not sys.stderr.isatty(),
+    ) as progress:
+        if workers == 1:
+            for index, url in enumerate(image_list):
+                download_image(index, url)
+                progress.update(1)
+            return
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(download_image, index, url) for index, url in enumerate(image_list)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                future.result()
+                progress.update(1)
+
 
 def make_cbz(dirname: str) -> None:
     zipname = f"{dirname}.cbz"
     images = sorted(Path(dirname).glob("*.jpg"))
     with closing(ZipFile(zipname, "w")) as zipfile:
         for filename in images:
-            print(f"writing {filename} to {zipname}")
             zipfile.write(filename, arcname=filename.name)
 
 
@@ -264,6 +386,7 @@ def download_manga(
     remove_images: bool = False,
     avg_delay: float = 2.0,
     max_retries: int = 5,
+    workers: int = 1,
 ) -> None:
     chapter_urls = get_chapter_urls(manga_name)
     if range_end is None:
@@ -273,9 +396,6 @@ def download_manga(
         return chapter_url[0] < range_start or chapter_url[0] > range_end
 
     for chapter, url in filterfalse(chapter_filter, chapter_urls.items()):
-        print("===============================================")
-        print(f"Chapter {chapter:g}")
-        print("===============================================")
         image_urls = get_chapter_image_urls(url)
         download_urls(
             image_urls,
@@ -283,6 +403,7 @@ def download_manga(
             chapter,
             avg_delay=avg_delay,
             max_retries=max_retries,
+            workers=workers,
         )
         download_dir = Path(".") / manga_name / f"{chapter:g}"
         if create_cbz:
@@ -340,21 +461,54 @@ def parse_arguments() -> argparse.Namespace:
         help="Enable HTTP request debug logging",
     )
     parser.add_argument(
+        "--profile",
+        action="store",
+        choices=sorted(PROFILE_DEFAULTS.keys()),
+        default="safe",
+        help="Performance profile (safe is default)",
+    )
+    parser.add_argument(
+        "--workers",
+        action="store",
+        type=int,
+        default=None,
+        help="Concurrent image downloads (overrides profile)",
+    )
+    parser.add_argument(
         "--delay",
         action="store",
         type=float,
-        default=2.0,
-        help="Average delay between image requests in seconds",
+        default=None,
+        help="Average delay between retry attempts in seconds (overrides profile)",
     )
     parser.add_argument(
         "--max-retries",
         action="store",
         type=int,
-        default=5,
-        help="Maximum retries per image",
+        default=None,
+        help="Maximum retries per image (overrides profile)",
     )
 
     return parser.parse_args()
+
+
+def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int]:
+    profile_settings = PROFILE_DEFAULTS[args.profile]
+
+    avg_delay = args.delay if args.delay is not None else profile_settings["avg_delay"]
+    max_retries = (
+        args.max_retries if args.max_retries is not None else profile_settings["max_retries"]
+    )
+    workers = args.workers if args.workers is not None else profile_settings["workers"]
+
+    if avg_delay < 0:
+        raise SystemExit("Error: --delay must be >= 0")
+    if max_retries < 1:
+        raise SystemExit("Error: --max-retries must be >= 1")
+    if workers < 1:
+        raise SystemExit("Error: --workers must be >= 1")
+
+    return avg_delay, max_retries, workers
 
 
 def main() -> None:
@@ -369,15 +523,17 @@ def main() -> None:
             print(chapter)
         return
 
-    print(f"Getting chapters of {args.manga} from {args.start} to {args.end}")
+    avg_delay, max_retries, workers = resolve_runtime_settings(args)
+
     download_manga(
         args.manga,
         args.start,
         args.end,
         args.cbz,
         args.remove,
-        args.delay,
-        args.max_retries,
+        avg_delay,
+        max_retries,
+        workers,
     )
 
 

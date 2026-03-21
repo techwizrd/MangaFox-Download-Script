@@ -25,8 +25,10 @@ Optional arguments:
 - `-r`, `--remove` remove image files after CBZ creation
 - `-l`, `--list` list chapter numbers and exit
 - `-d`, `--debug` show HTTP request debug output
-- `--delay <seconds>` average delay between image requests
-- `--max-retries <count>` max retries per image download
+- `--profile <safe|balanced|aggressive>` performance profile (default: `safe`)
+- `--workers <count>` concurrent image downloads (overrides profile)
+- `--delay <seconds>` average delay between retry attempts (overrides profile)
+- `--max-retries <count>` max retries per image download (overrides profile)
 
 Examples:
 
@@ -35,6 +37,7 @@ python3 mfdl.py -m "The World God Only Knows"
 python3 mfdl.py -m "The World God Only Knows" -s 222.5 -e 222.5
 python3 mfdl.py -m "The World God Only Knows" -s 190 -e 205 -c -r
 python3 mfdl.py -m "The World God Only Knows" --list
+python3 mfdl.py -m "One Piece" --profile balanced -c -r
 ```
 
 ## Development setup
