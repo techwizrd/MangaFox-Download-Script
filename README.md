@@ -1,57 +1,67 @@
-Mangafox Download Script
-========================
+# MangaFox Download Script
 
-About
------
-Mangafox Download Script is a manga downloader similar to my old Onemanga Download Script (although onemanga.com shut down). It works by scraping the image URL from every page in a manga chapter. It then it downloads all the images.
-I created this because I prefer reading manga with the use of a viewer like Comix. I also prefer keeping manga on my hard drive in case I am not connected to the internet.
+This project downloads manga chapter images and can optionally package each
+chapter into a `.cbz` archive.
 
-Dependencies
-------------
+The script is now maintained as a Python 3.11+ project with linting, type
+checking, tests, and pre-commit hooks.
 
-  * Python 3.3 or better
-  * BeautifulSoup (``pip install beautifulsoup4``)
+## Runtime requirements
 
-Tested on Arch Linux. It should work on any Linux, OS X, or Windows machine as long as the dependencies are installed.
+- Python 3.11+
+- `beautifulsoup4`
 
-Usage
------
+## Usage
 
 Mandatory argument:
-  -m --manga <Manga Name>
 
- Optional Argumentsq:
-   -s <Start At Chapter>
-   -e <End At Chapter>
-   -c Create cbz Archive
-   -r Remove image files after the creation of cbz archive"""
+- `-m`, `--manga <Manga Name>`
 
-To download an entire series:
+Optional arguments:
 
-    ~ $ python mfdl.py -m MANGA_NAME
+- `-s`, `--start <chapter>` start chapter (float supported)
+- `-e`, `--end <chapter>` end chapter (float supported)
+- `-c`, `--cbz` create CBZ archive after download
+- `-r`, `--remove` remove image files after CBZ creation
+- `-l`, `--list` list chapter numbers and exit
+- `-d`, `--debug` show HTTP request debug output
+- `--delay <seconds>` average delay between image requests
+- `--max-retries <count>` max retries per image download
 
-To download a specific chapter:
+Examples:
 
-    ~ $ python mfdl.py -m MANGA_NAME -s CHAPTER
+```bash
+python3 mfdl.py -m "The World God Only Knows"
+python3 mfdl.py -m "The World God Only Knows" -s 222.5 -e 222.5
+python3 mfdl.py -m "The World God Only Knows" -s 190 -e 205 -c -r
+python3 mfdl.py -m "The World God Only Knows" --list
+```
 
-To download a range of manga chapter:
+## Development setup
 
-    ~ $ python mfdl.py python mfdl.py -m MANGA_NAME -s CHAPTER_START -e CHAPTER_END
+Install dev dependencies:
 
-Examples
---------
-Download all of The World God Only Knows:
+```bash
+uv sync --extra dev
+```
 
-    ~ $ python mfdl.py -m "The World God Only Knows"
+Run quality checks directly:
 
-Download The World God Only Knows chapter 222.5:
+```bash
+uv run ruff check .
+uv run ruff format .
+uv run ty check mfdl.py tests
+uv run pytest -q
+```
 
-    ~ $ python mfdl.py -m "The World God Only Knows" -s 222.5
+## Pre-commit (`prek`)
 
-Download The World God Only Knows chapters 190-205:
+This repository uses `.pre-commit-config.yaml` and is intended to be executed
+with `prek`.
 
-    ~ $ python mfdl.py -m "The World God Only Knows" -s 190 -e 205
+```bash
+uv run prek install
+uv run prek run --all-files
+```
 
-Notes
------
-Please do not overuse and abuse this and destroy Mangafox. If you've got some cash, why not donate some to them and help them keep alive and combat server costs? I really would not like people to destroy Mangafox because of greedy downloading. Use this wisely and don't be evil.
+`pytest` is configured on the `pre-push` stage to keep normal commits fast.
