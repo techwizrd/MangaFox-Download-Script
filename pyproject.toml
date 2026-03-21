@@ -1,0 +1,39 @@
+[project]
+name = "mangafox-download-script"
+version = "0.1.0"
+description = "Legacy MangaFox downloader modernized for current tooling"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+  "prek>=0.2.0",
+  "pytest>=8.0",
+  "ruff>=0.6.0",
+  "ty",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
