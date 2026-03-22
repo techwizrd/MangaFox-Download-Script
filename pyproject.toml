@@ -2,6 +2,9 @@
 name = "mangafox-download-script"
 version = "0.1.0"
 description = "Legacy MangaFox downloader modernized for current tooling"
+authors = [
+  { name = "Kunal K. Sarkhel" },
+]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
