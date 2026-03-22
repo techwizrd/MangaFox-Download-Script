@@ -43,6 +43,9 @@ jobs:
       - name: Ruff check
         run: uv run ruff check .
 
+      - name: Markdownlint
+        run: uv run prek run markdownlint --all-files
+
       - name: Type check
         run: uv run ty check mfdl.py tests
 

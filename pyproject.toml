@@ -1,7 +1,10 @@
 [project]
 name = "mangafox-download-script"
 version = "0.1.0"
-description = "Legacy MangaFox downloader modernized for current tooling"
+description = "CLI tool to download and archive Fanfox manga chapters as CBZ for offline reading"
+authors = [
+  { name = "Kunal K. Sarkhel" },
+]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
