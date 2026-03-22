@@ -495,11 +495,11 @@ def parse_arguments() -> argparse.Namespace:
 def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int]:
     profile_settings = PROFILE_DEFAULTS[args.profile]
 
-    avg_delay = args.delay if args.delay is not None else profile_settings["avg_delay"]
-    max_retries = (
+    avg_delay = float(args.delay if args.delay is not None else profile_settings["avg_delay"])
+    max_retries = int(
         args.max_retries if args.max_retries is not None else profile_settings["max_retries"]
     )
-    workers = args.workers if args.workers is not None else profile_settings["workers"]
+    workers = int(args.workers if args.workers is not None else profile_settings["workers"])
 
     if avg_delay < 0:
         raise SystemExit("Error: --delay must be >= 0")
