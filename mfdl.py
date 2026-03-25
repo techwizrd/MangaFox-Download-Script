@@ -384,6 +384,7 @@ def download_manga(
     range_end: float | None = None,
     create_cbz: bool = False,
     remove_images: bool = False,
+    force: bool = False,
     avg_delay: float = 2.0,
     max_retries: int = 5,
     workers: int = 1,
@@ -396,6 +397,11 @@ def download_manga(
         return chapter_url[0] < range_start or chapter_url[0] > range_end
 
     for chapter, url in filterfalse(chapter_filter, chapter_urls.items()):
+        chapter_cbz = Path(manga_name) / f"{chapter:g}.cbz"
+        if chapter_cbz.exists() and not force:
+            print(f"Skipping chapter {chapter:g} (already downloaded)")
+            continue
+
         image_urls = get_chapter_image_urls(url)
         download_urls(
             image_urls,
@@ -445,6 +451,13 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         default=False,
         help="Remove image files after creating cbz archive",
+    )
+    parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        default=False,
+        help="Redownload chapters even if matching cbz files already exist",
     )
     parser.add_argument(
         "--list",
@@ -531,6 +544,7 @@ def main() -> None:
         args.end,
         args.cbz,
         args.remove,
+        args.force,
         avg_delay,
         max_retries,
         workers,

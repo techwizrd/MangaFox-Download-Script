@@ -191,3 +191,67 @@ def test_resolve_runtime_settings_workers_override_profile() -> None:
     assert avg_delay == 1.0
     assert max_retries == 4
     assert workers == 6
+
+
+def test_download_manga_skips_existing_cbz_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "Demo").mkdir()
+    (tmp_path / "Demo" / "1.cbz").write_bytes(b"existing")
+
+    monkeypatch.setattr(
+        mfdl,
+        "get_chapter_urls",
+        lambda _manga: mfdl.OrderedDict([(1.0, "/demo/c001/1.html"), (2.0, "/demo/c002/1.html")]),
+    )
+    monkeypatch.setattr(mfdl, "get_chapter_image_urls", lambda _url: ["https://img.example/1.jpg"])
+
+    downloaded_chapters: list[float] = []
+
+    def fake_download_urls(
+        _image_urls: list[str],
+        _manga_name: str,
+        chapter_number: float,
+        **_kwargs: float | int,
+    ) -> None:
+        downloaded_chapters.append(chapter_number)
+
+    monkeypatch.setattr(mfdl, "download_urls", fake_download_urls)
+
+    mfdl.download_manga("Demo")
+
+    assert downloaded_chapters == [2.0]
+
+
+def test_download_manga_force_redownloads_existing_cbz(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "Demo").mkdir()
+    (tmp_path / "Demo" / "1.cbz").write_bytes(b"existing")
+
+    monkeypatch.setattr(
+        mfdl,
+        "get_chapter_urls",
+        lambda _manga: mfdl.OrderedDict([(1.0, "/demo/c001/1.html"), (2.0, "/demo/c002/1.html")]),
+    )
+    monkeypatch.setattr(mfdl, "get_chapter_image_urls", lambda _url: ["https://img.example/1.jpg"])
+
+    downloaded_chapters: list[float] = []
+
+    def fake_download_urls(
+        _image_urls: list[str],
+        _manga_name: str,
+        chapter_number: float,
+        **_kwargs: float | int,
+    ) -> None:
+        downloaded_chapters.append(chapter_number)
+
+    monkeypatch.setattr(mfdl, "download_urls", fake_download_urls)
+
+    mfdl.download_manga("Demo", force=True)
+
+    assert downloaded_chapters == [1.0, 2.0]
