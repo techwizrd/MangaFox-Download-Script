@@ -31,6 +31,7 @@ Optional arguments:
 - `-c`, `--cbz` create CBZ archive after download
 - `-r`, `--remove` remove image files after CBZ creation
 - `-f`, `--force` redownload chapters even when matching `.cbz` files already exist
+- `--output-dir <directory>` directory where manga downloads are written
 - `-l`, `--list` list chapter numbers and exit
 - `-d`, `--debug` show HTTP request debug output
 - `--profile <safe|balanced|aggressive>` performance profile (default: `safe`)
@@ -47,6 +48,7 @@ python3 mfdl.py -m "The World God Only Knows" -s 190 -e 205 -c -r
 python3 mfdl.py -m "One Piece" -c -r --force
 python3 mfdl.py -m "The World God Only Knows" --list
 python3 mfdl.py -m "One Piece" --profile balanced -c -r
+python3 mfdl.py -m "One Piece" --output-dir ~/Manga -c -r
 ```
 
 ## Development setup

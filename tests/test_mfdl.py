@@ -89,6 +89,23 @@ def test_download_urls_skips_404(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     assert not (tmp_path / "Demo" / "1" / "000.jpg").exists()
 
 
+def test_download_urls_writes_to_output_dir(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    def fake_get_page_content(_url: str) -> tuple[int, str, bytes]:
+        return 200, "image/jpeg", b"jpegbytes"
+
+    monkeypatch.setattr(mfdl, "get_page_content", fake_get_page_content)
+
+    output_dir = tmp_path / "downloads"
+    mfdl.download_urls(["https://cdn.example/1.jpg"], "Demo", 1.0, output_dir=output_dir)
+
+    assert (output_dir / "Demo" / "1" / "000.jpg").read_bytes() == b"jpegbytes"
+
+
 def test_unpack_eval_packer_extracts_payload() -> None:
     packed = (
         'eval(function(p,a,c,k,e,d){e=function(c){return(c<a?"":'
@@ -214,7 +231,7 @@ def test_download_manga_skips_existing_cbz_by_default(
         _image_urls: list[str],
         _manga_name: str,
         chapter_number: float,
-        **_kwargs: float | int,
+        **_kwargs: object,
     ) -> None:
         downloaded_chapters.append(chapter_number)
 
@@ -246,7 +263,7 @@ def test_download_manga_force_redownloads_existing_cbz(
         _image_urls: list[str],
         _manga_name: str,
         chapter_number: float,
-        **_kwargs: float | int,
+        **_kwargs: object,
     ) -> None:
         downloaded_chapters.append(chapter_number)
 
@@ -255,3 +272,35 @@ def test_download_manga_force_redownloads_existing_cbz(
     mfdl.download_manga("Demo", force=True)
 
     assert downloaded_chapters == [1.0, 2.0]
+
+
+def test_download_manga_uses_output_dir_for_existing_cbz(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "downloads"
+    (output_dir / "Demo").mkdir(parents=True)
+    (output_dir / "Demo" / "1.cbz").write_bytes(b"existing")
+
+    monkeypatch.setattr(
+        mfdl,
+        "get_chapter_urls",
+        lambda _manga: mfdl.OrderedDict([(1.0, "/demo/c001/1.html"), (2.0, "/demo/c002/1.html")]),
+    )
+    monkeypatch.setattr(mfdl, "get_chapter_image_urls", lambda _url: ["https://img.example/1.jpg"])
+
+    downloaded_chapters: list[float] = []
+
+    def fake_download_urls(
+        _image_urls: list[str],
+        _manga_name: str,
+        chapter_number: float,
+        **_kwargs: object,
+    ) -> None:
+        downloaded_chapters.append(chapter_number)
+
+    monkeypatch.setattr(mfdl, "download_urls", fake_download_urls)
+
+    mfdl.download_manga("Demo", output_dir=output_dir)
+
+    assert downloaded_chapters == [2.0]

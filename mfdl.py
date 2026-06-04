@@ -305,13 +305,14 @@ def download_urls(
     image_urls: Iterable[str],
     manga_name: str,
     chapter_number: float,
+    output_dir: Path = Path("."),
     avg_delay: float = 2.0,
     max_retries: int = 5,
     workers: int = 1,
 ) -> None:
     image_list = list(image_urls)
     chapter_label = f"{chapter_number:g}"
-    download_dir = Path(manga_name) / chapter_label
+    download_dir = output_dir / manga_name / chapter_label
     if download_dir.exists():
         shutil.rmtree(download_dir)
     download_dir.mkdir(parents=True)
@@ -382,6 +383,7 @@ def download_manga(
     manga_name: str,
     range_start: float = 1,
     range_end: float | None = None,
+    output_dir: Path = Path("."),
     create_cbz: bool = False,
     remove_images: bool = False,
     force: bool = False,
@@ -397,7 +399,7 @@ def download_manga(
         return chapter_url[0] < range_start or chapter_url[0] > range_end
 
     for chapter, url in filterfalse(chapter_filter, chapter_urls.items()):
-        chapter_cbz = Path(manga_name) / f"{chapter:g}.cbz"
+        chapter_cbz = output_dir / manga_name / f"{chapter:g}.cbz"
         if chapter_cbz.exists() and not force:
             print(f"Skipping chapter {chapter:g} (already downloaded)")
             continue
@@ -407,11 +409,12 @@ def download_manga(
             image_urls,
             manga_name,
             chapter,
+            output_dir=output_dir,
             avg_delay=avg_delay,
             max_retries=max_retries,
             workers=workers,
         )
-        download_dir = Path(".") / manga_name / f"{chapter:g}"
+        download_dir = output_dir / manga_name / f"{chapter:g}"
         if create_cbz:
             make_cbz(str(download_dir))
             if remove_images:
@@ -458,6 +461,13 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         default=False,
         help="Redownload chapters even if matching cbz files already exist",
+    )
+    parser.add_argument(
+        "--output-dir",
+        action="store",
+        type=Path,
+        default=Path("."),
+        help="Directory where manga downloads are written",
     )
     parser.add_argument(
         "--list",
@@ -542,6 +552,7 @@ def main() -> None:
         args.manga,
         args.start,
         args.end,
+        args.output_dir,
         args.cbz,
         args.remove,
         args.force,
