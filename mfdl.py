@@ -33,6 +33,7 @@ DEFAULT_HEADERS = {
     ),
     "Referer": URL_BASE,
 }
+DEFAULT_TIMEOUT = 30.0
 PROFILE_DEFAULTS = {
     "safe": {"workers": 2, "avg_delay": 2.0, "max_retries": 5},
     "balanced": {"workers": 4, "avg_delay": 1.0, "max_retries": 4},
@@ -77,24 +78,29 @@ def read_response_content(response: Any) -> bytes:
     return payload
 
 
-def get_page_content(url: str) -> tuple[int, str, bytes]:
-    with closing(urllib.request.urlopen(request_url(url))) as response:
+def get_page_content(url: str, timeout: float = DEFAULT_TIMEOUT) -> tuple[int, str, bytes]:
+    with closing(urllib.request.urlopen(request_url(url), timeout=timeout)) as response:
         status = response.getcode()
         content_type = response.headers.get_content_type()
         payload = read_response_content(response)
         return status, content_type, payload
 
 
-def get_page_content_with_headers(url: str, headers: dict[str, str]) -> tuple[int, str, bytes]:
-    with closing(urllib.request.urlopen(request_url_with_headers(url, headers))) as response:
+def get_page_content_with_headers(
+    url: str,
+    headers: dict[str, str],
+    timeout: float = DEFAULT_TIMEOUT,
+) -> tuple[int, str, bytes]:
+    request = request_url_with_headers(url, headers)
+    with closing(urllib.request.urlopen(request, timeout=timeout)) as response:
         status = response.getcode()
         content_type = response.headers.get_content_type()
         payload = read_response_content(response)
         return status, content_type, payload
 
 
-def get_page_soup(url: str) -> BeautifulSoup:
-    _, _, page_content = get_page_content(url)
+def get_page_soup(url: str, timeout: float = DEFAULT_TIMEOUT) -> BeautifulSoup:
+    _, _, page_content = get_page_content(url, timeout=timeout)
     return BeautifulSoup(page_content, "html.parser")
 
 
@@ -105,16 +111,16 @@ def manga_to_slug(manga_name: str) -> str:
     return reduce(replacer, [" ", "-"], manga_name.lower())
 
 
-def get_chapter_urls(manga_name: str) -> OrderedDict[float, str]:
+def get_chapter_urls(manga_name: str, timeout: float = DEFAULT_TIMEOUT) -> OrderedDict[float, str]:
     manga_slug = manga_to_slug(manga_name)
     url = f"{URL_BASE}manga/{manga_slug}/"
 
-    soup = get_page_soup(url)
+    soup = get_page_soup(url, timeout=timeout)
     manga_does_not_exist = soup.find("form", {"name": "searchform"})
     if manga_does_not_exist:
         search_sort_options = "sort=views&order=za"
         search_url = f"{URL_BASE}search?name={manga_slug}&{search_sort_options}"
-        soup = get_page_soup(search_url)
+        soup = get_page_soup(search_url, timeout=timeout)
         results = soup.find_all("a", {"class": "series_preview"})
         error_text = f"Error: Manga '{manga_name}' does not exist"
         error_text += "\nDid you mean one of the following?\n  * "
@@ -166,22 +172,22 @@ def get_page_numbers(soup: BeautifulSoup) -> list[int]:
     raise SystemExit("Error: Unable to determine page list")
 
 
-def get_chapter_image_urls(url_fragment: str) -> list[str]:
+def get_chapter_image_urls(url_fragment: str, timeout: float = DEFAULT_TIMEOUT) -> list[str]:
     chapter_number = get_chapter_number(url_fragment)
     if chapter_number is None:
         raise SystemExit(f"Error: invalid chapter URL fragment: {url_fragment}")
 
-    chapter_soup = get_page_soup(url_fragment)
+    chapter_soup = get_page_soup(url_fragment, timeout=timeout)
     try:
         pages = get_page_numbers(chapter_soup)
     except SystemExit:
-        return get_chapter_image_urls_desktop(url_fragment)
+        return get_chapter_image_urls_desktop(url_fragment, timeout=timeout)
 
     chapter_base_url = os.path.dirname(url_fragment.rstrip("/")) + "/"
     image_urls: list[str] = []
     for page in pages:
         page_url = f"{chapter_base_url}{page}.html"
-        page_soup = get_page_soup(page_url)
+        page_soup = get_page_soup(page_url, timeout=timeout)
         viewer_div = page_soup.find("div", id="viewer")
         image = None
         if viewer_div:
@@ -225,10 +231,17 @@ def unpack_eval_packer(source: str) -> str:
     return re.sub(r"\b\w+\b", replace_token, payload)
 
 
-def get_chapter_image_urls_desktop(url_fragment: str) -> list[str]:
+def get_chapter_image_urls_desktop(
+    url_fragment: str,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> list[str]:
     chapter_url = normalize_url(url_fragment).replace("m.fanfox.net", "fanfox.net")
 
-    _, _, chapter_content = get_page_content_with_headers(chapter_url, {"Referer": chapter_url})
+    _, _, chapter_content = get_page_content_with_headers(
+        chapter_url,
+        {"Referer": chapter_url},
+        timeout=timeout,
+    )
     chapter_html = chapter_content.decode("utf-8", "ignore")
 
     chapter_id_match = re.search(r"var\s+chapterid\s*=\s*(\d+);", chapter_html)
@@ -256,6 +269,7 @@ def get_chapter_image_urls_desktop(url_fragment: str) -> list[str]:
                 "Referer": chapter_url,
                 "X-Requested-With": "XMLHttpRequest",
             },
+            timeout=timeout,
         )
         unpacked = unpack_eval_packer(payload.decode("utf-8", "ignore"))
 
@@ -309,6 +323,7 @@ def download_urls(
     avg_delay: float = 2.0,
     max_retries: int = 5,
     workers: int = 1,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> None:
     image_list = list(image_urls)
     chapter_label = f"{chapter_number:g}"
@@ -326,7 +341,7 @@ def download_urls(
         while attempt < max_retries:
             attempt += 1
             try:
-                status, content_type, data = get_page_content(url)
+                status, content_type, data = get_page_content(url, timeout=timeout)
                 if status < 200 or status >= 300:
                     print(
                         f"Warning: got status {status} for {url} (attempt {attempt}/{max_retries})"
@@ -390,8 +405,9 @@ def download_manga(
     avg_delay: float = 2.0,
     max_retries: int = 5,
     workers: int = 1,
+    timeout: float = DEFAULT_TIMEOUT,
 ) -> None:
-    chapter_urls = get_chapter_urls(manga_name)
+    chapter_urls = get_chapter_urls(manga_name, timeout=timeout)
     if range_end is None:
         range_end = max(chapter_urls.keys())
 
@@ -404,7 +420,7 @@ def download_manga(
             print(f"Skipping chapter {chapter:g} (already downloaded)")
             continue
 
-        image_urls = get_chapter_image_urls(url)
+        image_urls = get_chapter_image_urls(url, timeout=timeout)
         download_urls(
             image_urls,
             manga_name,
@@ -413,6 +429,7 @@ def download_manga(
             avg_delay=avg_delay,
             max_retries=max_retries,
             workers=workers,
+            timeout=timeout,
         )
         download_dir = output_dir / manga_name / f"{chapter:g}"
         if create_cbz:
@@ -511,11 +528,18 @@ def parse_arguments() -> argparse.Namespace:
         default=None,
         help="Maximum retries per image (overrides profile)",
     )
+    parser.add_argument(
+        "--timeout",
+        action="store",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help=f"HTTP request timeout in seconds (default: {DEFAULT_TIMEOUT:g})",
+    )
 
     return parser.parse_args()
 
 
-def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int]:
+def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int, float]:
     profile_settings = PROFILE_DEFAULTS[args.profile]
 
     avg_delay = float(args.delay if args.delay is not None else profile_settings["avg_delay"])
@@ -523,6 +547,7 @@ def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int]
         args.max_retries if args.max_retries is not None else profile_settings["max_retries"]
     )
     workers = int(args.workers if args.workers is not None else profile_settings["workers"])
+    timeout = float(args.timeout)
 
     if avg_delay < 0:
         raise SystemExit("Error: --delay must be >= 0")
@@ -530,8 +555,10 @@ def resolve_runtime_settings(args: argparse.Namespace) -> tuple[float, int, int]
         raise SystemExit("Error: --max-retries must be >= 1")
     if workers < 1:
         raise SystemExit("Error: --workers must be >= 1")
+    if timeout <= 0:
+        raise SystemExit("Error: --timeout must be > 0")
 
-    return avg_delay, max_retries, workers
+    return avg_delay, max_retries, workers, timeout
 
 
 def main() -> None:
@@ -541,12 +568,12 @@ def main() -> None:
         debug_http_requests()
 
     if args.list:
-        chapter_urls = get_chapter_urls(args.manga)
+        chapter_urls = get_chapter_urls(args.manga, timeout=args.timeout)
         for chapter in chapter_urls:
             print(chapter)
         return
 
-    avg_delay, max_retries, workers = resolve_runtime_settings(args)
+    avg_delay, max_retries, workers, timeout = resolve_runtime_settings(args)
 
     download_manga(
         args.manga,
@@ -559,6 +586,7 @@ def main() -> None:
         avg_delay,
         max_retries,
         workers,
+        timeout,
     )
 
 

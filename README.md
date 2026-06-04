@@ -38,6 +38,7 @@ Optional arguments:
 - `--workers <count>` concurrent image downloads (overrides profile)
 - `--delay <seconds>` average delay between retry attempts (overrides profile)
 - `--max-retries <count>` max retries per image download (overrides profile)
+- `--timeout <seconds>` HTTP request timeout (default: `30`)
 
 Examples:
 
@@ -49,6 +50,7 @@ python3 mfdl.py -m "One Piece" -c -r --force
 python3 mfdl.py -m "The World God Only Knows" --list
 python3 mfdl.py -m "One Piece" --profile balanced -c -r
 python3 mfdl.py -m "One Piece" --output-dir ~/Manga -c -r
+python3 mfdl.py -m "One Piece" --timeout 60 -c -r
 ```
 
 ## Development setup
