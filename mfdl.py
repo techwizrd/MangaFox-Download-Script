@@ -334,7 +334,7 @@ def download_urls(
 
     random.seed()
 
-    def download_image(index: int, url: str) -> None:
+    def download_image(index: int, url: str) -> str | None:
         filename = download_dir / f"{index:03}.jpg"
 
         attempt = 0
@@ -353,7 +353,7 @@ def download_urls(
                     )
                 else:
                     write_binary_file(filename, data)
-                    break
+                    return None
             except urllib.error.HTTPError as http_error:
                 print(f"HTTP error {http_error.code}: {http_error.reason}")
                 if http_error.code == 404:
@@ -365,25 +365,40 @@ def download_urls(
                 retry_delay = random.uniform(avg_delay * 0.6, avg_delay * 1.4)
                 time.sleep(retry_delay)
 
+        return filename.name
+
     with tqdm(
         total=len(image_list),
         desc=f"Chapter {chapter_label}",
         unit="img",
         disable=not sys.stderr.isatty(),
     ) as progress:
+        failed_images: list[str] = []
         if workers == 1:
             for index, url in enumerate(image_list):
-                download_image(index, url)
+                failed_image = download_image(index, url)
+                if failed_image is not None:
+                    failed_images.append(failed_image)
                 progress.update(1)
-            return
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = [
-                executor.submit(download_image, index, url) for index, url in enumerate(image_list)
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                future.result()
-                progress.update(1)
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = [
+                    executor.submit(download_image, index, url)
+                    for index, url in enumerate(image_list)
+                ]
+                for future in concurrent.futures.as_completed(futures):
+                    failed_image = future.result()
+                    if failed_image is not None:
+                        failed_images.append(failed_image)
+                    progress.update(1)
+
+        if failed_images:
+            failed_list = ", ".join(sorted(failed_images))
+            raise SystemExit(
+                f"Error: failed to download {len(failed_images)} image(s) "
+                f"for chapter {chapter_label}: {failed_list}"
+            )
 
 
 def make_cbz(dirname: str) -> None:

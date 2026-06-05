@@ -10,6 +10,12 @@ This script is intended for archival/offline reading use cases (for example,
 downloading chapters before a flight). Users are responsible for complying
 with Fanfox [Terms of Service](https://fanfox.net/teams/).
 
+Downloaded manga should be written to `downloads/` with `--output-dir downloads`
+when working from a Git checkout. That directory is ignored by Git.
+
+If a chapter finishes with missing images, the script prints a final failed-image
+summary and exits non-zero instead of silently leaving an incomplete chapter.
+
 The script is now maintained as a Python 3.11+ project with linting, type
 checking, tests, and pre-commit hooks.
 
@@ -49,7 +55,7 @@ python3 mfdl.py -m "The World God Only Knows" -s 190 -e 205 -c -r
 python3 mfdl.py -m "One Piece" -c -r --force
 python3 mfdl.py -m "The World God Only Knows" --list
 python3 mfdl.py -m "One Piece" --profile balanced -c -r
-python3 mfdl.py -m "One Piece" --output-dir ~/Manga -c -r
+python3 mfdl.py -m "One Piece" --output-dir downloads -c -r
 python3 mfdl.py -m "One Piece" --timeout 60 -c -r
 ```
 

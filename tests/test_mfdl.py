@@ -119,9 +119,43 @@ def test_download_urls_skips_404(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 
     monkeypatch.setattr(mfdl, "get_page_content", fake_get_page_content)
 
-    mfdl.download_urls(["https://cdn.example/1.jpg"], "Demo", 1.0, avg_delay=0.0, max_retries=3)
+    with pytest.raises(SystemExit, match=r"failed to download 1 image\(s\).*000.jpg"):
+        mfdl.download_urls(["https://cdn.example/1.jpg"], "Demo", 1.0, avg_delay=0.0, max_retries=3)
 
     assert not (tmp_path / "Demo" / "1" / "000.jpg").exists()
+
+
+def test_download_urls_summarizes_failed_images(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(mfdl.time, "sleep", lambda _: None)
+
+    def fake_get_page_content(url: str, **_kwargs: object) -> tuple[int, str, bytes]:
+        if url.endswith("good.jpg"):
+            return 200, "image/jpeg", b"jpegbytes"
+        return 200, "text/html", b"not an image"
+
+    monkeypatch.setattr(mfdl, "get_page_content", fake_get_page_content)
+
+    with pytest.raises(SystemExit, match=r"failed to download 2 image\(s\).*001.jpg.*002.jpg"):
+        mfdl.download_urls(
+            [
+                "https://cdn.example/good.jpg",
+                "https://cdn.example/bad-a.jpg",
+                "https://cdn.example/bad-b.jpg",
+            ],
+            "Demo",
+            1.0,
+            avg_delay=0.0,
+            max_retries=1,
+            workers=2,
+        )
+
+    assert (tmp_path / "Demo" / "1" / "000.jpg").read_bytes() == b"jpegbytes"
+    assert not (tmp_path / "Demo" / "1" / "001.jpg").exists()
+    assert not (tmp_path / "Demo" / "1" / "002.jpg").exists()
 
 
 def test_download_urls_writes_to_output_dir(
