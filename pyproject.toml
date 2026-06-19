@@ -12,6 +12,16 @@ dependencies = [
   "tqdm>=4.66",
 ]
 
+[project.scripts]
+mfdl = "mfdl:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["mfdl"]
+
 [project.optional-dependencies]
 dev = [
   "prek>=0.2.0",

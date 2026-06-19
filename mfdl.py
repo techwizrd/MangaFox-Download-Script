@@ -16,7 +16,6 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from contextlib import closing
 from functools import reduce
-from itertools import filterfalse
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -409,6 +408,29 @@ def make_cbz(dirname: str) -> None:
             zipfile.write(filename, arcname=filename.name)
 
 
+def select_chapters(
+    chapter_urls: OrderedDict[float, str],
+    range_start: float = 1,
+    range_end: float | None = None,
+    latest: int | None = None,
+) -> OrderedDict[float, str]:
+    if latest is not None and latest < 1:
+        raise SystemExit("Error: --latest must be >= 1")
+
+    if range_end is None:
+        range_end = max(chapter_urls.keys())
+
+    selected = [
+        (chapter, url)
+        for chapter, url in chapter_urls.items()
+        if range_start <= chapter <= range_end
+    ]
+    if latest is not None:
+        selected = selected[-latest:]
+
+    return OrderedDict(selected)
+
+
 def download_manga(
     manga_name: str,
     range_start: float = 1,
@@ -421,15 +443,12 @@ def download_manga(
     max_retries: int = 5,
     workers: int = 1,
     timeout: float = DEFAULT_TIMEOUT,
+    latest: int | None = None,
 ) -> None:
     chapter_urls = get_chapter_urls(manga_name, timeout=timeout)
-    if range_end is None:
-        range_end = max(chapter_urls.keys())
+    selected_chapters = select_chapters(chapter_urls, range_start, range_end, latest)
 
-    def chapter_filter(chapter_url: tuple[float, str]) -> bool:
-        return chapter_url[0] < range_start or chapter_url[0] > range_end
-
-    for chapter, url in filterfalse(chapter_filter, chapter_urls.items()):
+    for chapter, url in selected_chapters.items():
         chapter_cbz = output_dir / manga_name / f"{chapter:g}.cbz"
         if chapter_cbz.exists() and not force:
             print(f"Skipping chapter {chapter:g} (already downloaded)")
@@ -509,6 +528,13 @@ def parse_arguments() -> argparse.Namespace:
         help="List available chapter numbers",
     )
     parser.add_argument(
+        "--latest",
+        action="store",
+        type=int,
+        default=None,
+        help="Download or list only the latest N selected chapters",
+    )
+    parser.add_argument(
         "--debug",
         "-d",
         action="store_true",
@@ -584,7 +610,8 @@ def main() -> None:
 
     if args.list:
         chapter_urls = get_chapter_urls(args.manga, timeout=args.timeout)
-        for chapter in chapter_urls:
+        selected_chapters = select_chapters(chapter_urls, args.start, args.end, args.latest)
+        for chapter in selected_chapters:
             print(chapter)
         return
 
@@ -602,6 +629,7 @@ def main() -> None:
         max_retries,
         workers,
         timeout,
+        args.latest,
     )
 
 

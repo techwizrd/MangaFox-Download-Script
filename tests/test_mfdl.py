@@ -1,4 +1,5 @@
 import argparse
+import tomllib
 import urllib.parse
 import urllib.request
 from email.message import Message
@@ -9,6 +10,12 @@ import pytest
 from bs4 import BeautifulSoup
 
 import mfdl
+
+
+def test_project_defines_mfdl_console_script() -> None:
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text())
+
+    assert pyproject["project"]["scripts"]["mfdl"] == "mfdl:main"
 
 
 class FakeHTTPResponse:
@@ -308,6 +315,45 @@ def test_resolve_runtime_settings_rejects_invalid_timeout() -> None:
         mfdl.resolve_runtime_settings(args)
 
 
+def test_select_chapters_returns_all_chapters_by_default() -> None:
+    chapters = mfdl.OrderedDict(
+        [(1.0, "/demo/c001/1.html"), (2.0, "/demo/c002/1.html"), (3.0, "/demo/c003/1.html")]
+    )
+
+    assert list(mfdl.select_chapters(chapters)) == [1.0, 2.0, 3.0]
+
+
+def test_select_chapters_latest_returns_highest_chapters() -> None:
+    chapters = mfdl.OrderedDict(
+        [(1.0, "/demo/c001/1.html"), (2.0, "/demo/c002/1.html"), (3.0, "/demo/c003/1.html")]
+    )
+
+    assert list(mfdl.select_chapters(chapters, latest=2)) == [2.0, 3.0]
+
+
+def test_select_chapters_latest_applies_after_range() -> None:
+    chapters = mfdl.OrderedDict(
+        [
+            (1.0, "/demo/c001/1.html"),
+            (2.0, "/demo/c002/1.html"),
+            (3.0, "/demo/c003/1.html"),
+            (4.0, "/demo/c004/1.html"),
+        ]
+    )
+
+    assert list(mfdl.select_chapters(chapters, range_start=1.0, range_end=3.0, latest=2)) == [
+        2.0,
+        3.0,
+    ]
+
+
+def test_select_chapters_rejects_invalid_latest() -> None:
+    chapters = mfdl.OrderedDict([(1.0, "/demo/c001/1.html")])
+
+    with pytest.raises(SystemExit, match="--latest"):
+        mfdl.select_chapters(chapters, latest=0)
+
+
 def test_download_manga_skips_existing_cbz_by_default(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -342,6 +388,41 @@ def test_download_manga_skips_existing_cbz_by_default(
     mfdl.download_manga("Demo")
 
     assert downloaded_chapters == [2.0]
+
+
+def test_download_manga_latest_downloads_only_latest_chapters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mfdl,
+        "get_chapter_urls",
+        lambda _manga, **_kwargs: mfdl.OrderedDict(
+            [
+                (1.0, "/demo/c001/1.html"),
+                (2.0, "/demo/c002/1.html"),
+                (3.0, "/demo/c003/1.html"),
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        mfdl, "get_chapter_image_urls", lambda _url, **_kwargs: ["https://img.example/1.jpg"]
+    )
+
+    downloaded_chapters: list[float] = []
+
+    def fake_download_urls(
+        _image_urls: list[str],
+        _manga_name: str,
+        chapter_number: float,
+        **_kwargs: object,
+    ) -> None:
+        downloaded_chapters.append(chapter_number)
+
+    monkeypatch.setattr(mfdl, "download_urls", fake_download_urls)
+
+    mfdl.download_manga("Demo", latest=2)
+
+    assert downloaded_chapters == [2.0, 3.0]
 
 
 def test_download_manga_force_redownloads_existing_cbz(
@@ -444,3 +525,37 @@ def test_download_manga_passes_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     mfdl.download_manga("Demo", timeout=9.5)
 
     assert calls == {"chapter_urls": 9.5, "image_urls": 9.5, "download_urls": 9.5}
+
+
+def test_main_list_honors_latest(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        mfdl,
+        "parse_arguments",
+        lambda: argparse.Namespace(
+            manga="Demo",
+            start=1,
+            end=None,
+            latest=2,
+            list=True,
+            debug=False,
+            timeout=mfdl.DEFAULT_TIMEOUT,
+        ),
+    )
+    monkeypatch.setattr(
+        mfdl,
+        "get_chapter_urls",
+        lambda _manga, **_kwargs: mfdl.OrderedDict(
+            [
+                (1.0, "/demo/c001/1.html"),
+                (2.0, "/demo/c002/1.html"),
+                (3.0, "/demo/c003/1.html"),
+            ]
+        ),
+    )
+
+    mfdl.main()
+
+    assert capsys.readouterr().out.splitlines() == ["2.0", "3.0"]

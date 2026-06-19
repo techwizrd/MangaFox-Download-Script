@@ -26,6 +26,9 @@ checking, tests, and pre-commit hooks.
 
 ## Usage
 
+After installation, run the downloader with `mfdl`. From a source checkout,
+`uv run mfdl` also works.
+
 Mandatory argument:
 
 - `-m`, `--manga <Manga Name>`
@@ -39,6 +42,7 @@ Optional arguments:
 - `-f`, `--force` redownload chapters even when matching `.cbz` files already exist
 - `--output-dir <directory>` directory where manga downloads are written
 - `-l`, `--list` list chapter numbers and exit
+- `--latest <count>` download or list only the latest N selected chapters
 - `-d`, `--debug` show HTTP request debug output
 - `--profile <safe|balanced|aggressive>` performance profile (default: `safe`)
 - `--workers <count>` concurrent image downloads (overrides profile)
@@ -49,14 +53,15 @@ Optional arguments:
 Examples:
 
 ```bash
-python3 mfdl.py -m "The World God Only Knows"
-python3 mfdl.py -m "The World God Only Knows" -s 222.5 -e 222.5
-python3 mfdl.py -m "The World God Only Knows" -s 190 -e 205 -c -r
-python3 mfdl.py -m "One Piece" -c -r --force
-python3 mfdl.py -m "The World God Only Knows" --list
-python3 mfdl.py -m "One Piece" --profile balanced -c -r
-python3 mfdl.py -m "One Piece" --output-dir downloads -c -r
-python3 mfdl.py -m "One Piece" --timeout 60 -c -r
+mfdl -m "The World God Only Knows"
+mfdl -m "The World God Only Knows" -s 222.5 -e 222.5
+mfdl -m "The World God Only Knows" -s 190 -e 205 -c -r
+mfdl -m "One Piece" -c -r --force
+mfdl -m "The World God Only Knows" --list
+mfdl -m "One Piece" --latest 5 -c -r
+mfdl -m "One Piece" --profile balanced -c -r
+mfdl -m "One Piece" --output-dir downloads -c -r
+mfdl -m "One Piece" --timeout 60 -c -r
 ```
 
 ## Development setup
